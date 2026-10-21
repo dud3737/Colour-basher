@@ -7,7 +7,7 @@
 +.dbg[hidden],.dbglock[hidden]{display:none}
 +.dbglock{width:100%;display:flex;flex-direction:column;gap:8px;border:3px dashed var(--ink-soft);border-radius:16px;padding:12px}
 +.lockrow{display:flex;gap:8px}
-+.lockrow input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 12px;border:3px solid var(--edge);border-radius:12px;background:var(--panel2);color:var(--ink)}
++.lockrow input{flex:1;min-width:0;font:inherit;font-size:16px;padding:8px 12px;border:3px solid var(--edge);border-radius:12px;background:var(--panel2);color:var(--ink);user-select:text;-webkit-user-select:text}
 +.lockrow input.bad{animation:ouch .4s}
  #game.debug .lvl{position:relative}
  #game.debug .lvl::after{content:"DEBUG";position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);font-size:9px;letter-spacing:.12em;background:#ff8c1a;color:#fff;border:2px solid var(--edge);border-radius:999px;padding:1px 6px}
@@ -64,3 +64,12 @@
  ui('lvDown5',()=>stepLv(-5));ui('lvDown',()=>stepLv(-1));ui('lvUp',()=>stepLv(1));ui('lvUp5',()=>stepLv(5));
  $('bonusSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.bonusAfter=+b.dataset.l;renderDbg();});
  $('livesSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.lives=+b.dataset.v;renderDbg();});
+@@ -842,7 +872,7 @@
+ ui('motivBtn',showMotivation);ui('motivQuit',toTitle);
+ $('motivNext').addEventListener('click',()=>$('nextBtn').click());
+ $('grid').addEventListener('pointerdown',e=>{const c=e.target.closest('.cell');if(!c)return;e.preventDefault();Snd.init();tap(+c.dataset.i);});
+-document.addEventListener('contextmenu',e=>e.preventDefault());
++document.addEventListener('contextmenu',e=>{if(!e.target.closest('input'))e.preventDefault();});   // keep long-press paste working in the password box
+ 
+ /* live timer */
+ let lastShown='';

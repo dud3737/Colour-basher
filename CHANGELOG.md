@@ -13,6 +13,14 @@ The technical detail behind each release is in `CODE-CHANGES.md`.
   - Once unlocked, the debug tools stay open until the game is closed or reloaded.
   - The sound switch in Settings isn't locked.
 
+## [1.7.1] – 2026-10-21
+
+### Changed
+- The **Debug · Testing** tools in Settings are now locked behind a password. Settings shows a 🔒 password box with an UNLOCK button (Enter also works); the sound switch stays available to everyone.
+  - A wrong password shows "Wrong password" with a shake.
+  - The correct password reveals the debug tools, and they stay unlocked until the game is closed or reloaded.
+  - Only a scrambled (SHA-256) fingerprint of the password is stored in the game, not the password itself.
+
 ## [1.7.0] – 2026-10-21
 
 ### Added

@@ -52,6 +52,32 @@ Exact diff: `versions/diffs/1.7.0-to-1.7.1.diff`
 
 ---
 
+## 1.7.1 – 2026-10-21
+
+Exact diff: `versions/diffs/1.7.0-to-1.7.1.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| HTML | Settings | **New** `#dbgLock` panel: password field `#dbgPass`, `#dbgUnlock` button and `#dbgMsg` message. The existing debug panel is now `#dbgBox` and starts `hidden`. |
+| CSS | `.dbglock`, `.lockrow`, `.dbg[hidden]` | Lock panel styling (16px input text so iPhones don't zoom in); shake on a wrong password (`.bad`, reuses `ouch`); the input allows text selection. |
+| JS | `DBG_HASH`, `sha256()` | The password is compared by SHA-256 hash, so the plain password never appears in the code (including the public GitHub repo). `sha256()` is built in, so it also works in the Android WebView and Claude's viewer. |
+| JS | `tryUnlock()`, `dbgOpen` | Correct password → reveal `#dbgBox` and set `dbgOpen` for the session (not saved, so it relocks on reload). Wrong or empty → message, shake, buzz. |
+| JS | Settings button | Clears the field and message, and shows the lock or the debug tools depending on `dbgOpen`. |
+| JS | `contextmenu` handler | Long-press menus are still blocked, except inside inputs, so paste works in the password box. |
+| JS | `VERSION` | `'1.7.0'` → `'1.7.1'` |
+| Android | `app/build.gradle.kts` | `versionCode` 15 → 16, `versionName` "1.7.0" → "1.7.1". |
+
+The password itself is deliberately not written in any project file.
+
+**Tested** in a headless browser:
+- **Locked by default:** Settings showed the lock and hid the debug tools.
+- **Rejected:** an empty submit, a wrong case (`suitcase1!`), a missing `!`, a trailing space and an unrelated word were all refused.
+- **Accepted:** the correct password with Enter unlocked the tools. They stayed unlocked after closing and reopening Settings, and PLAY LEVEL started a debug run.
+- **Relocks:** after a reload the tools were locked again.
+- **Hash:** the built-in SHA-256 was checked against Python's `hashlib` on six test strings, including Unicode and emoji.
+
+---
+
 ## Tooling – 2026-10-21 (no new game version)
 
 | Area | Where | Change |
