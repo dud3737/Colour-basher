@@ -25,6 +25,29 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.7.5 – 2026-10-21
+
+Exact diff: `versions/diffs/1.7.4-to-1.7.5.diff`
+
+**Context:** the user reported that 1.7.4 still zoomed in on Safari while bashing. CSS `touch-action` and a `touchend`-only guard evidently aren't enough there, so this version stops Safari's default touch behaviour at the source and adds a recovery path.
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `touchstart` on `#stage` | `preventDefault()` (non-passive) on every board touch, which cancels all native gestures on the grid (double-tap zoom, smart zoom, callouts). Bashing is unaffected because it runs on `pointerdown`, which still fires. |
+| JS | Document `touchend` guard | Replaces the board-only guard from 1.7.4: a second `touchend` within 350 ms is cancelled anywhere except on buttons, inputs and links (so their clicks still work). |
+| JS | `visualViewport` `resize` safety net | If the scale goes above 1 during a game, the viewport tag is briefly rewritten (`maximum-scale=1` → `1.0`) and restored after 80 ms. Re-applying the tag makes Safari reset the zoom. |
+| CSS | `#game` | `touch-action: none` for the whole game screen (it needs no scrolling). |
+| JS | `VERSION` | `'1.7.4'` → `'1.7.5'` |
+| Android | `app/build.gradle.kts` | `versionCode` 19 → 20, `versionName` "1.7.4" → "1.7.5". |
+
+**Tested** in a headless Chromium emulating a touch phone; no Safari engine is available, so the user's iPhone is the real test:
+- **Board touches:** a board `touchstart` is cancelled.
+- **Taps still bash:** five real touch taps 90 ms apart bashed five blocks.
+- **Buttons:** pause and resume worked with quick taps.
+- **Safety net:** forcing `visualViewport.scale` to 2.4 mid-game rewrote the viewport tag, which was restored afterwards.
+
+---
+
 ## 1.7.4 – 2026-10-21
 
 Exact diff: `versions/diffs/1.7.3-to-1.7.4.diff`

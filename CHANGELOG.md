@@ -4,6 +4,14 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.7.5] – 2026-10-21
+
+### Fixed
+- **Zooming while bashing on iPhone (second attempt).** 1.7.4 didn't stop it on Safari. This version takes a firmer approach:
+  - The board now cancels Safari's own touch handling completely, so no tap, double-tap or rapid bashing on the grid can trigger zoom. Taps still bash blocks exactly as before.
+  - Quick double-taps anywhere else (background, HUD) are swallowed too; buttons are unaffected.
+  - **Safety net:** if Safari still zooms in during a game, the game immediately snaps back to normal size.
+
 ## [1.7.4] – 2026-10-21
 
 ### Fixed
