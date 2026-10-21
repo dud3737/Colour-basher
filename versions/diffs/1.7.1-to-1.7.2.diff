@@ -1,0 +1,32 @@
+--- colour-basher-1.7.1.html
++++ colour-basher-1.7.2.html
+@@ -436,7 +436,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.7.1';
++const VERSION='1.7.2';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+@@ -563,7 +563,7 @@
+ function stopTimer(){if(G.running){G.elapsed+=performance.now()-G.t0;G.running=false;}}
+ function fmt(ms,dp=1){const s=ms/1000;if(s<60)return s.toFixed(dp);const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(dp).padStart(dp?dp+3:2,'0');}
+ 
+-function showScreen(n){screen=n;for(const id of ['title','game','records'])$(id).classList.toggle('active',id===n);if(n==='title')updateBest();if(n==='records')renderRecords();syncTrap();}
++function showScreen(n){screen=n;for(const id of ['title','game','records'])$(id).classList.toggle('active',id===n);if(n==='title'){updateBest();if(BT.pendingReload)return swReload();}if(n==='records')renderRecords();syncTrap();}
+ function showOv(id){for(const o of ['ovPause','ovOver','ovWin','ovSettings','ovMotiv'])$(o).classList.toggle('show',o===id);syncTrap();}
+ /* ---------- web app: browser back button pauses / steps back instead of leaving the page ---------- */
+ const WEBAPP=!window.AndroidBridge&&window.top===window&&!!(history&&history.pushState);
+@@ -901,7 +901,10 @@
+ FX.resize();buildTitle();syncSound();updateBest();$('ver').textContent='v'+VERSION;
+ /* web app: offline support + ask the browser to keep records safe (skipped inside the Android app and Claude's viewer) */
+ if(WEBAPP&&'serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
+-  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}});}
++  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}});
++  /* the offline file reports its version when it updates; if this page is older, refresh once - but never mid-game (waits until the home screen) */
++  navigator.serviceWorker.addEventListener('message',e=>{const d=e.data||{};if(d.type!=='cb-version'||d.v===VERSION)return;BT.pendingReload=true;if(screen==='title')swReload();});}
++function swReload(){if(BT.reloading)return;BT.reloading=true;location.reload();}
+ })();
+ </script>
+ </body>

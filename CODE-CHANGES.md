@@ -25,6 +25,29 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.7.2 – 2026-10-21
+
+Exact diff (game file): `versions/diffs/1.7.1-to-1.7.2.diff`
+
+**Cause:** GitHub Pages serves pages with `Cache-Control: max-age=600`. The service worker's network-first `fetch(r)` used the browser's HTTP cache, so for up to 10 minutes after a deploy it could get the old `index.html` back without asking GitHub.
+
+| Area | Where | Change |
+|---|---|---|
+| Web | `sw.js` (via `tools/build_web.py`) | Page requests are fetched with `cache: 'no-cache'`, so the browser always revalidates with GitHub (a quick 304 if unchanged). `VERSION` is now a constant in the worker. On activate, it posts `{type: 'cb-version', v}` to open pages. |
+| JS | SW registration | Registers with `updateViaCache: 'none'` and calls `update()` on load, so a new `sw.js` is noticed promptly. |
+| JS | `message` listener, `swReload()`, `BT.pendingReload` / `BT.reloading` | If the worker reports a version different from the page's `VERSION`: refresh at once when on the home screen, otherwise set `pendingReload`. Refreshes at most once. |
+| JS | `showScreen()` | Returning to the home screen performs any pending refresh, so it never refreshes mid-level. |
+| JS | `VERSION` | `'1.7.1'` → `'1.7.2'` |
+| Android | `app/build.gradle.kts` | `versionCode` 16 → 17, `versionName` "1.7.1" → "1.7.2". |
+
+**Tested** in a headless browser against a local server sending GitHub's `max-age=600` header, with new versions "deployed" by editing the served files:
+- **One refresh is enough:** deploy plus a single refresh showed the new version, with no extra reload.
+- **Open page updates itself:** a page left on the home screen refreshed itself once when a newer version arrived.
+- **Never mid-level:** a deploy during a level caused no reload; quitting to the home screen then refreshed to the new version.
+- **Offline:** an offline reload still worked.
+
+---
+
 ## 1.7.1 – 2026-10-21
 
 Exact diff: `versions/diffs/1.7.0-to-1.7.1.diff`

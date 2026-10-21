@@ -4,6 +4,16 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.7.2] – 2026-10-21
+
+### Fixed
+- **Web app updates now show up straight away.** After a new version went live, refreshing could keep showing the old one for up to 10 minutes, because GitHub Pages lets browsers reuse a saved copy and the offline support accepted it.
+  - The game page is now always re-checked with the server, so one refresh shows the new version.
+  - A game that's already open updates itself on the home screen: it refreshes once when a newer version arrives.
+  - It never refreshes in the middle of a level; it waits until you're back on the home screen.
+  - Offline play is unchanged.
+- Phones still on 1.7.1 may need two refreshes to pick up this version; after that, one refresh is enough.
+
 ## [1.7.1] – 2026-10-21
 
 ### Changed

@@ -51,7 +51,7 @@ After the first visit the game works **offline**. Records and scores are stored 
 
 ## How updates reach players
 
-Each build stamps its version into `sw.js`. When you upload a new version, players get it the next time they open the game while online. The version number on the home screen shows which build they're running.
+Each build stamps its version into `sw.js`. When you upload a new version, players get it the next time they open or refresh the game while online. A game that's already open refreshes itself once when it's back on the home screen (never mid-level). The version number on the home screen shows which build they're running.
 
 ## Building the web folder (for each release)
 
