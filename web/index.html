@@ -46,7 +46,7 @@
 }
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg1)}
 body{height:100%;margin:0;overflow:hidden;position:relative;background:var(--bg1);color:var(--ink);
-  font-family:var(--fu);font-weight:800;user-select:none;-webkit-user-select:none;touch-action:pan-x pan-y;overscroll-behavior:none}
+  font-family:var(--fu);font-weight:800;user-select:none;-webkit-user-select:none;touch-action:manipulation;overscroll-behavior:none}
 button{font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
 button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 
@@ -195,7 +195,8 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 .chip.done{opacity:.25;transform:scale(.8)}
 
 /* board */
-.stage{position:relative}
+.stage{position:relative;touch-action:none}
+.stage *{touch-action:none}
 .board{position:relative;width:var(--bw);height:var(--bw);padding:calc(var(--bw) * .022);background:var(--well);
   border:4px solid var(--edge);border-radius:20px;
   box-shadow:inset 0 0 0 3px rgba(255,255,255,.07),inset 0 10px 30px rgba(0,0,0,.45),0 6px 0 var(--edge),0 16px 30px var(--shadow)}
@@ -445,7 +446,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='1.7.3';
+const VERSION='1.7.4';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -887,8 +888,12 @@ $('motivNext').addEventListener('click',()=>$('nextBtn').click());
 $('grid').addEventListener('pointerdown',e=>{const c=e.target.closest('.cell');if(!c)return;e.preventDefault();Snd.init();tap(+c.dataset.i);});
 document.addEventListener('contextmenu',e=>{if(!e.target.closest('input'))e.preventDefault();});   // keep long-press paste working in the password box
 /* block pinch-zoom: iOS Safari ignores user-scalable=no, so cancel its gesture events and two-finger moves (taps still register) */
-['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
-document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
+/* zoom guards for iOS Safari, which ignores user-scalable=no */
+const zoomed=()=>!!(window.visualViewport&&visualViewport.scale>1.01);   // if the page ever does end up zoomed, let the player pinch back out
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>{if(!zoomed())e.preventDefault();},{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1&&!zoomed())e.preventDefault();},{passive:false});
+/* double-tap zoom: swallow a 2nd quick touchend on the board (blocks are bashed on pointerdown, so taps still count) */
+let lastTouchEnd=0;$('stage').addEventListener('touchend',e=>{const now=Date.now();if(now-lastTouchEnd<350)e.preventDefault();lastTouchEnd=now;},{passive:false});
 
 /* live timer */
 let lastShown='';

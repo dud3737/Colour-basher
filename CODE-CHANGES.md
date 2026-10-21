@@ -25,6 +25,30 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.7.4 – 2026-10-21
+
+Exact diff: `versions/diffs/1.7.3-to-1.7.4.diff`
+
+**Cause (regression from 1.7.3):** 1.7.3 changed the body's `touch-action` from `manipulation` to `pan-x pan-y`. iOS Safari's support for `pan-x pan-y` is incomplete, and `manipulation` was what disabled double-tap-to-zoom there. Quick repeated taps while bashing were read as a double-tap and zoomed in. With pinch blocked by the 1.7.3 gesture handlers, the player couldn't zoom back out.
+
+| Area | Where | Change |
+|---|---|---|
+| CSS | `body` | `touch-action` back to `manipulation` (blocks double-tap zoom in Safari). |
+| CSS | `.stage`, `.stage *` | `touch-action: none` on the board, which needs no scrolling or zooming. |
+| JS | `touchend` on `#stage` | A second `touchend` within 350 ms is cancelled, a belt-and-braces block on iOS double-tap zoom. Blocks are bashed on `pointerdown`, so every tap still counts. |
+| JS | `zoomed()` + gesture/two-finger `touchmove` guards | Pinch is only blocked while `visualViewport.scale` is about 1. If the page is somehow zoomed, pinch is allowed so the player can zoom back out. |
+| JS | `VERSION` | `'1.7.3'` → `'1.7.4'` |
+| Android | `app/build.gradle.kts` | `versionCode` 18 → 19, `versionName` "1.7.3" → "1.7.4". |
+
+**Tested** in a headless Chromium emulating a touch phone; no WebKit/Safari engine is available, so the real check is on an iPhone:
+- **Settings:** body `touch-action` is `manipulation`, blocks are `none`.
+- **Rapid taps:** six real touch taps 120 ms apart bashed all six blocks.
+- **Double-tap blocking:** of two quick `touchend`s on the board, the first passed and the second was cancelled.
+- **Pinch:** blocked at normal zoom, but allowed when the viewport scale was forced to 2.5.
+- **Buttons:** quick taps on pause, resume and pause all responded.
+
+---
+
 ## 1.7.3 – 2026-10-21
 
 Exact diff: `versions/diffs/1.7.2-to-1.7.3.diff`

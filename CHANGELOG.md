@@ -4,6 +4,14 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.7.4] – 2026-10-21
+
+### Fixed
+- **Random zoom while bashing on iPhone.** Tapping blocks quickly could trigger Safari's double-tap zoom, and because 1.7.3 blocks pinching, you couldn't zoom back out. This was caused by 1.7.3: the setting it used to stop zooming isn't fully supported by Safari, and it replaced the one that was stopping double-tap zoom. The changelog for 1.7.3 wrongly said double-tap zoom was blocked.
+  - The board now ignores double-tap zoom entirely, while every tap still bashes its block.
+  - The rest of the screen is back to the setting Safari supports for blocking double-tap zoom.
+  - **Escape hatch:** if the page ever does end up zoomed, pinching is allowed again so you can zoom back out. Pinch-to-zoom-in stays blocked at normal size.
+
 ## [1.7.3] – 2026-10-21
 
 ### Fixed
