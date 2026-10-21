@@ -4,6 +4,12 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.7.3] – 2026-10-21
+
+### Fixed
+- **Pinch-zoom on iPhone.** Safari ignores the usual "no zoom" setting, so pinching zoomed into the game. Pinch-zoom and double-tap zoom are now blocked. Normal scrolling (Records, Settings) and multi-finger tapping in bonus rounds still work.
+- **Confetti getting stuck on screen.** Pieces of confetti and explosion effects could stay frozen after the animation ended, especially after zooming on iPhone. The effects layer now always wipes the whole screen when it finishes.
+
 ## [1.7.2] – 2026-10-21
 
 ### Fixed

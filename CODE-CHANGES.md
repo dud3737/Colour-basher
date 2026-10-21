@@ -25,6 +25,31 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.7.3 – 2026-10-21
+
+Exact diff: `versions/diffs/1.7.2-to-1.7.3.diff`
+
+**Causes:**
+- **Zoom:** iOS Safari ignores `user-scalable=no` / `maximum-scale` in the viewport tag, and the body's `touch-action: manipulation` still allows pinch-zoom.
+- **Stuck confetti:** `FX.step()` cleared the canvas with `clearRect(0, 0, innerWidth, innerHeight)`. On iOS, `innerWidth` / `innerHeight` shrink to the zoomed visual viewport (with no `resize` event), so only part of the full-size canvas was wiped and the rest of the last frame stayed frozen.
+
+| Area | Where | Change |
+|---|---|---|
+| CSS | `body` | `touch-action: manipulation` → `pan-x pan-y`, which allows scrolling but not pinch or double-tap zoom. |
+| JS | Document listeners | `gesturestart`, `gesturechange` and `gestureend` (Safari-only pinch events) are cancelled, and two-finger `touchmove` is cancelled (non-passive). Single-finger moves and all `pointerdown` taps are unaffected. |
+| JS | `FX.resize()` | Sizes the canvas from the layout viewport (`document.documentElement.clientWidth/Height`) and stores it as `FX.W` / `FX.H`. |
+| JS | `FX.clear()` | **New.** Resets the transform and clears the full canvas bitmap (`cv.width × cv.height`). Used every frame and when the animation ends. |
+| JS | `FX.confetti()` | Spawns across `FX.W` / `FX.H` instead of `innerWidth` / `innerHeight`. |
+| JS | `VERSION` | `'1.7.2'` → `'1.7.3'` |
+| Android | `app/build.gradle.kts` | `versionCode` 17 → 18, `versionName` "1.7.2" → "1.7.3". |
+
+**Tested** in a headless Chromium emulating a touch phone; no WebKit/Safari engine is available in the test environment, so the final check is on a real iPhone:
+- **Stuck confetti reproduced:** won a level, then mid-confetti made `innerWidth` / `innerHeight` report a zoomed viewport (180 × 360) without a resize, as iOS does. On 1.7.2, 907,362 confetti pixels stayed frozen; on 1.7.3, 0.
+- **Zoom blocked:** the body's touch-action is `pan-x pan-y`, and synthetic `gesturestart` and two-finger `touchmove` events are cancelled.
+- **Scrolling intact:** one-finger `touchmove` is not cancelled.
+
+---
+
 ## 1.7.2 – 2026-10-21
 
 Exact diff (game file): `versions/diffs/1.7.1-to-1.7.2.diff`

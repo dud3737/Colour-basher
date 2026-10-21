@@ -37,7 +37,7 @@
 }
 html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg1)}
 body{height:100%;margin:0;overflow:hidden;position:relative;background:var(--bg1);color:var(--ink);
-  font-family:var(--fu);font-weight:800;user-select:none;-webkit-user-select:none;touch-action:manipulation;overscroll-behavior:none}
+  font-family:var(--fu);font-weight:800;user-select:none;-webkit-user-select:none;touch-action:pan-x pan-y;overscroll-behavior:none}
 button{font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
 button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 
@@ -436,7 +436,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='1.7.2';
+const VERSION='1.7.3';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -500,7 +500,11 @@ function buzz(ms){try{if(window.AndroidBridge&&window.AndroidBridge.vibrate)wind
 /* ---------- particle effects ---------- */
 const FX={
   cv:$('fx'),parts:[],running:false,last:0,
-  resize(){const d=Math.min(window.devicePixelRatio||1,2);this.cv.width=innerWidth*d;this.cv.height=innerHeight*d;this.cv.style.width=innerWidth+'px';this.cv.style.height=innerHeight+'px';this.ctx=this.cv.getContext('2d');this.ctx.setTransform(d,0,0,d,0,0);},
+  resize(){   // sized to the layout viewport (not innerWidth, which shrinks while iOS is pinch-zoomed)
+    const d=Math.min(window.devicePixelRatio||1,2),de=document.documentElement;this.W=de.clientWidth||innerWidth;this.H=de.clientHeight||innerHeight;
+    this.cv.width=Math.round(this.W*d);this.cv.height=Math.round(this.H*d);this.cv.style.width=this.W+'px';this.cv.style.height=this.H+'px';
+    this.ctx=this.cv.getContext('2d');this.ctx.setTransform(d,0,0,d,0,0);},
+  clear(){const c=this.ctx;c.save();c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,this.cv.width,this.cv.height);c.restore();},   // always wipes the whole canvas
   add(p){this.parts.push(p);if(!this.running){this.running=true;this.last=performance.now();requestAnimationFrame(t=>this.step(t));}},
   explode(x,y,col,size){
     this.add({k:'flash',x,y,r:size*.9,age:0,life:.13});
@@ -512,9 +516,9 @@ const FX={
       this.add({k:'spark',x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,age:0,life:rnd(.18,.34),col:pick(['#fff','#fff7a8','#ffd400'])});}
   },
   confetti(){for(let i=0;i<90;i++){const c=pick(COLOURS);
-    this.add({k:'chunk',x:rnd(0,innerWidth),y:rnd(-innerHeight*.4,-10),vx:rnd(-60,60),vy:rnd(60,260),g:240,s:rnd(7,14),rot:rnd(0,6),vr:rnd(-8,8),age:0,life:rnd(2.2,3.6),col:pick([c.c,c.l])});}},
+    this.add({k:'chunk',x:rnd(0,this.W),y:rnd(-this.H*.4,-10),vx:rnd(-60,60),vy:rnd(60,260),g:240,s:rnd(7,14),rot:rnd(0,6),vr:rnd(-8,8),age:0,life:rnd(2.2,3.6),col:pick([c.c,c.l])});}},
   step(t){
-    const dt=Math.max(0,Math.min((t-this.last)/1000,.05));this.last=Math.max(t,this.last);const ctx=this.ctx;ctx.clearRect(0,0,innerWidth,innerHeight); // rAF time can be earlier than the tap that queued the effect: never step backwards
+    const dt=Math.max(0,Math.min((t-this.last)/1000,.05));this.last=Math.max(t,this.last);const ctx=this.ctx;this.clear(); // rAF time can be earlier than the tap that queued the effect: never step backwards
     for(let i=this.parts.length-1;i>=0;i--){const p=this.parts[i];p.age+=dt;if(p.age>=p.life){this.parts.splice(i,1);continue;}
       const q=p.age/p.life;
       if(p.k==='chunk'){p.vy+=(p.g||1500)*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
@@ -527,7 +531,7 @@ const FX={
         ctx.beginPath();ctx.arc(p.x,p.y,Math.max(0,p.r0+(p.r1-p.r0)*e),0,Math.PI*2);ctx.stroke();ctx.restore();}
       else if(p.k==='flash'){ctx.save();ctx.globalAlpha=1-q;ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(0,p.r*(.6+q*.6)),0,Math.PI*2);ctx.fill();ctx.restore();}
     }
-    if(this.parts.length)requestAnimationFrame(t=>this.step(t));else{this.running=false;ctx.clearRect(0,0,innerWidth,innerHeight);}
+    if(this.parts.length)requestAnimationFrame(t=>this.step(t));else{this.running=false;this.clear();}
   }
 };
 
@@ -873,6 +877,9 @@ ui('motivBtn',showMotivation);ui('motivQuit',toTitle);
 $('motivNext').addEventListener('click',()=>$('nextBtn').click());
 $('grid').addEventListener('pointerdown',e=>{const c=e.target.closest('.cell');if(!c)return;e.preventDefault();Snd.init();tap(+c.dataset.i);});
 document.addEventListener('contextmenu',e=>{if(!e.target.closest('input'))e.preventDefault();});   // keep long-press paste working in the password box
+/* block pinch-zoom: iOS Safari ignores user-scalable=no, so cancel its gesture events and two-finger moves (taps still register) */
+['gesturestart','gesturechange','gestureend'].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches.length>1)e.preventDefault();},{passive:false});
 
 /* live timer */
 let lastShown='';
