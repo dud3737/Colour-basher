@@ -4,6 +4,15 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.7.1] – 2026-10-21
+
+### Changed
+- The **Debug · Testing** tools in Settings are now locked behind a password.
+  - Settings shows a 🔒 password box with an UNLOCK button; pressing Enter on the keyboard also works.
+  - A wrong or empty entry shakes the box and says "Wrong password" or "Enter the password".
+  - Once unlocked, the debug tools stay open until the game is closed or reloaded.
+  - The sound switch in Settings isn't locked.
+
 ## [1.7.0] – 2026-10-21
 
 ### Added

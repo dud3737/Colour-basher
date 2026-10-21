@@ -25,6 +25,33 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.7.1 – 2026-10-21
+
+Exact diff: `versions/diffs/1.7.0-to-1.7.1.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| HTML | Settings | New `#dbgLock` box: password input `#dbgPass`, `#dbgUnlock` button and `#dbgMsg` message. The debug section is now `#dbgBox`, hidden by default. |
+| CSS | `.dbglock`, `.lockrow`, `.lockrow input`, `.lockrow input.bad`, `[hidden]` rules | Lock box styling (16 px input, so phones don't zoom in) and a shake on a wrong entry. |
+| JS | `DBG_HASH` | **New.** SHA-256 hash of the password. **The password itself is not stored anywhere in the code or these docs.** |
+| JS | `sha256(str)` | **New.** Small built-in SHA-256, so it works everywhere (including `file://` in the Android app) without relying on `crypto.subtle`. Checked against Node's crypto on 9 inputs, including empty, 55/56/64/200-byte and Unicode strings. |
+| JS | `tryUnlock()`, `dbgOpen` | Compares the hash of the entry. Correct: hides the lock and shows the debug tools until reload. Wrong: message, shake, hurt sound and vibration. The Enter key also submits. |
+| JS | Settings button | Clears the box and message each time Settings opens; shows the lock or the tools depending on `dbgOpen`. |
+| JS | `VERSION` | `'1.7.0'` → `'1.7.1'` |
+| Android | `app/build.gradle.kts` | `versionCode` 15 → 16, `versionName` "1.7.0" → "1.7.1". |
+
+**Security note:** this keeps casual players out of the debug tools. It isn't real security, because everything runs on the player's device and someone technical could edit the page. Storing only the hash means the password can't be read from the code, though a weak password could still be guessed.
+
+**Tested** in a headless browser:
+- Settings opened with the debug tools hidden.
+- Empty, wrong-case and missing-character entries were rejected with the right message.
+- The correct password unlocked the tools via the Enter key.
+- The tools stayed unlocked after closing and reopening Settings, and a debug level started normally.
+- After a reload, the tools were locked again.
+- The password does not appear in the game file.
+
+---
+
 ## Tooling – 2026-10-21 (no new game version)
 
 | Area | Where | Change |
