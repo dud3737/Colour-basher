@@ -1,0 +1,40 @@
+--- colour-basher-1.5.0.html
++++ colour-basher-1.5.1.html
+@@ -412,7 +412,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.5.0';
++const VERSION='1.5.1';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+@@ -572,8 +572,8 @@
+ function bonusEnd(cleared){
+   if(G.state==='bonusdone')return;
+   stopTimer();G.state='bonusdone';const left=Math.max(0,G.bonusMs-G.elapsed),n=G.cells.filter(c=>!c.alive).length;
+-  const cb=cleared?500:0,tl=cleared?Math.round(left/10):0,before=G.score;G.score+=cb+tl;const hi=bankScore();
+-  setTally([['Blocks bashed',n*25],['Clear bonus',cb],['Time left bonus',tl]],before,G.score,hi,cleared?900:700);
++  const cb=cleared?500:0,tl=cleared?Math.floor(left/100)*10:0,before=G.score;G.score+=cb+tl;const hi=bankScore();
++  setTally([['Blocks bashed',n*30],['Clear bonus',cb],['Time left bonus',tl]],before,G.score,hi,cleared?900:700);
+   const hist=store.get('cb_bonus',[]);hist.push({after:G.level,n,all:cleared,left:Math.round(left),d:Date.now()});if(!G.debug)store.set('cb_bonus',hist.slice(-50)); // kept for future rewards (not in debug runs)
+   if(cleared){Snd.win();FX.confetti();buzz(60);}else{Snd.timeup();buzz(120);$('grid').classList.add('dead');}
+   titleWord($('winTitle'),cleared?'PERFECT!':'TIME UP!');
+@@ -630,7 +630,7 @@
+   const r=cell.el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,target=G.order[G.ti];
+   if(cell.c===target){
+     const now=performance.now();G.combo=now-G.lastHit<COMBO_WINDOW?G.combo+1:1;G.lastHit=now;
+-    smash(cell,x,y,r.width,G.combo-1);buzz(14);restart($('stage'),'shake-s');addScore(G.bonus?25:10*comboMult(G.combo));
++    smash(cell,x,y,r.width,G.combo-1);buzz(14);restart($('stage'),'shake-s');addScore(G.bonus?30:10*comboMult(G.combo));
+     if(cell.item==='power'){colourBlast(x,y,target);return;}
+     if(cell.item!=='heart'){if(G.combo>=3)popText(x,y,G.combo+' COMBO!','#ffd400',true);else popText(x,y,pick(BASH_WORDS),COLOURS[cell.c].l);}
+     const left=remaining(target);$('tCount').textContent='×'+left;restart($('tCount'),'bump');
+@@ -697,7 +697,7 @@
+ function win(){
+   if(G.bonus){bonusEnd(true);return;}
+   stopTimer();G.state='win';stopWarn();const t=G.elapsed;Snd.win();FX.confetti();buzz(60);
+-  const play=G.score-G.levelStartScore,tb=Math.max(0,Math.round((90-t/1000)*10)),lb=G.hearts*200,vb=G.level*250,before=G.score;
++  const play=G.score-G.levelStartScore,tb=Math.max(0,Math.floor(90-t/1000))*10,lb=G.hearts*200,vb=G.level*250,before=G.score;
+   G.score+=tb+lb+vb;const hi=bankScore();
+   setTally([['Level play',play],['Time bonus',tb],['Lives bonus',lb],['Level bonus',vb]],before,G.score,hi,900);
+   const recs=store.get('cb_records',[]);const prevBest=recs.length?recs[0].t:Infinity;

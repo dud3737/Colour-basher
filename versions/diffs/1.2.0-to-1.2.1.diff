@@ -1,0 +1,35 @@
+--- colour-basher-1.2.0.html
++++ colour-basher-1.2.1.html
+@@ -178,6 +178,12 @@
+ @keyframes cd{0%{transform:scale(2.4);opacity:0}25%{transform:scale(1);opacity:1}75%{transform:scale(1);opacity:1}100%{transform:scale(.6);opacity:0}}
+ .banner span{font-family:var(--fd);font-size:calc(var(--bw) * .14);line-height:1.1;animation:sweep .95s cubic-bezier(.2,.9,.3,1) forwards}
+ .banner small{display:block;font-size:.42em;letter-spacing:.05em}
++.clearmsg{line-height:1.05;background:rgba(13,8,40,.78);border:3px solid #07041a;border-radius:20px;padding:14px 24px 12px;animation:cpop 1.15s cubic-bezier(.2,1.4,.4,1) forwards}
++.cpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--fd);font-size:max(13px,calc(var(--bw) * .04));letter-spacing:.06em;color:var(--pc);background:#07041a;border:2px solid var(--pc);border-radius:999px;padding:4px 12px;margin-bottom:10px}
++.cpill svg{width:1.1em;height:1.1em;fill:none;stroke:currentColor;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
++.nlbl{font-family:var(--fd);font-size:max(14px,calc(var(--bw) * .045));letter-spacing:.2em}
++.nname{font-family:var(--fd);font-size:calc(var(--bw) * .15)}
++@keyframes cpop{0%{transform:scale(.4);opacity:0}14%{transform:scale(1);opacity:1}80%{transform:scale(1);opacity:1}100%{transform:scale(1.06);opacity:0}}
+ @keyframes sweep{0%{transform:translateX(-120%) skewX(-15deg)}25%{transform:none}75%{transform:none;opacity:1}100%{transform:translateX(120%) skewX(15deg);opacity:0}}
+ 
+ .shake-s{animation:shs .16s}
+@@ -342,7 +348,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.2.0';
++const VERSION='1.2.1';
+ const N=8, MAX_HEARTS=3, MAX_LIVES=5, COMBO_WINDOW=900;
+ const EYES='<i class="eye"></i><i class="eye r"></i>';
+ const STAR='<i class="star"><svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.7 7.2.7-5.4 4.8 1.6 7.1L12 17.4l-6.4 3.7 1.6-7.1-5.4-4.8 7.2-.7z"/></svg></i>';
+@@ -559,8 +565,8 @@
+   const done=COLOURS[G.order[G.ti]];G.ti++;renderChips();
+   if(G.ti>=G.order.length){win();return;}
+   Snd.clear();const nx=COLOURS[G.order[G.ti]];
+-  $('banner').innerHTML=`<span class="outline">${done.name} CLEAR!<small style="color:${nx.c}">NEXT: ${nx.name}</small></span>`;
+-  G.cd.push(setTimeout(()=>{$('banner').innerHTML='';},1000));
++  $('banner').innerHTML=`<div class="clearmsg"><div class="cpill" style="--pc:${done.c}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>${done.name} CLEARED</div><div class="nlbl outline">NEXT</div><div class="nname outline" style="color:${nx.c}">${nx.name}</div></div>`;
++  G.cd.push(setTimeout(()=>{$('banner').innerHTML='';},1150));
+   updateTarget(true);
+ }
+ function gameOver(){

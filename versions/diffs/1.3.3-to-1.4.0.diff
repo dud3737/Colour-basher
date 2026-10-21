@@ -1,0 +1,145 @@
+--- colour-basher-1.3.3.html
++++ colour-basher-1.4.0.html
+@@ -71,6 +71,22 @@
+ .best{position:relative;font-size:15px;color:var(--ink);background:var(--panel);border:3px solid var(--edge);border-radius:999px;padding:6px 16px;box-shadow:0 4px 0 var(--edge)}
+ .best:empty{display:none}
+ .sound{position:absolute;right:14px;top:14px;z-index:2}
++.settings{position:absolute;left:14px;top:14px;z-index:2}
++.setpanel{max-height:100%;overflow-y:auto;gap:12px}
++.setrow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16px}
++.dbg{width:100%;display:flex;flex-direction:column;gap:10px;border:3px dashed var(--ink-soft);border-radius:16px;padding:12px}
++.dbg-h{font-family:var(--fd);font-size:15px;letter-spacing:.08em;color:#ff8c1a}
++.dbg-note,.lvinfo{margin:0;font-size:12px;color:var(--ink-soft);line-height:1.4;text-align:left}
++.stepper{display:flex;align-items:center;gap:5px}
++.stepper .iconbtn{width:36px;height:36px;font-size:14px;font-family:var(--fd)}
++.stepper b{font-family:var(--fd);font-size:26px;min-width:42px;text-align:center}
++.seg{display:flex;border:3px solid var(--edge);border-radius:12px;overflow:hidden}
++.seg button{border:0;background:var(--panel);padding:8px 11px;font-family:var(--fd);font-size:14px;cursor:pointer;color:var(--ink)}
++.seg button+button{border-left:3px solid var(--edge)}
++.seg button.on{background:#ffd400;color:#3a2600}
++.dbg .btn{min-width:0;font-size:17px}
++#game.debug .lvl{position:relative}
++#game.debug .lvl::after{content:"DEBUG";position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);font-size:9px;letter-spacing:.12em;background:#ff8c1a;color:#fff;border:2px solid var(--edge);border-radius:999px;padding:1px 6px}
+ .ver{position:absolute;left:0;right:0;bottom:14px;text-align:center;font-size:12px;letter-spacing:.16em;color:var(--ink-soft);z-index:1}
+ .tips{position:relative;font-size:13px;line-height:1.55;text-align:center;background:var(--panel);border:3px solid var(--edge);border-radius:14px;padding:8px 14px;box-shadow:0 4px 0 var(--edge);max-width:310px}
+ .tips b{color:#f2b600}.tips i{font-style:normal;color:#ff2e4d}
+@@ -258,6 +274,7 @@
+ <!-- TITLE -->
+ <section class="screen active" id="title">
+   <div class="falls" id="falls"></div>
++  <button class="iconbtn settings" id="setBtn" aria-label="Settings">⚙️</button>
+   <button class="iconbtn sound" id="soundBtn" aria-label="Toggle sound">🔊</button>
+   <div class="logo" id="logo"></div>
+   <div class="menu">
+@@ -340,6 +357,21 @@
+   </div>
+ </div></div>
+ 
++<div class="ov" id="ovSettings"><div class="panel setpanel">
++  <h2 class="ov-title outline">SETTINGS</h2>
++  <div class="setrow"><span>Sound</span><button class="btn small blue" id="setSound">ON</button></div>
++  <div class="dbg">
++    <div class="dbg-h">DEBUG · TESTING</div>
++    <p class="dbg-note">Jump straight to any level or bonus round. Debug runs aren’t saved to Records.</p>
++    <div class="setrow"><span>Level</span><div class="stepper"><button class="iconbtn" id="lvDown5">−5</button><button class="iconbtn" id="lvDown">−</button><b id="lvVal">1</b><button class="iconbtn" id="lvUp">+</button><button class="iconbtn" id="lvUp5">+5</button></div></div>
++    <p class="lvinfo" id="lvInfo"></p>
++    <button class="btn green" id="dbgLevel">PLAY LEVEL 1</button>
++    <div class="setrow"><span>Bonus</span><div class="seg" id="bonusSeg"><button data-l="3">5×5</button><button data-l="6">6×6</button><button data-l="9">7×7</button></div></div>
++    <button class="btn yellow" id="dbgBonus">PLAY BONUS</button>
++  </div>
++  <button class="btn small purple" id="setClose">CLOSE</button>
++</div></div>
++
+ <div id="hurt"></div>
+ <div id="flash"></div>
+ <canvas id="fx"></canvas>
+@@ -356,7 +388,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.3.3';
++const VERSION='1.4.0';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+@@ -484,10 +516,10 @@
+ function fmt(ms,dp=1){const s=ms/1000;if(s<60)return s.toFixed(dp);const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(dp).padStart(dp?dp+3:2,'0');}
+ 
+ function showScreen(n){screen=n;for(const id of ['title','game','records'])$(id).classList.toggle('active',id===n);if(n==='title')updateBest();if(n==='records')renderRecords();}
+-function showOv(id){for(const o of ['ovPause','ovOver','ovWin'])$(o).classList.toggle('show',o===id);}
++function showOv(id){for(const o of ['ovPause','ovOver','ovWin','ovSettings'])$(o).classList.toggle('show',o===id);}
+ function clearTimers(){G.cd.forEach(clearTimeout);G.cd=[];}
+ 
+-function newGame(){G.level=1;G.startHearts=MAX_HEARTS;startLevel(true);}
++function newGame(){setDebug(false);G.level=1;G.startHearts=MAX_HEARTS;startLevel(true);}
+ function startLevel(fresh){
+   clearTimers();setMode(false);G.size=N;
+   if(fresh||!G.grid){G.grid=genGrid();G.order=genOrder();G.items=genItems(G.level);}
+@@ -514,14 +546,14 @@
+ function bonusEnd(cleared){
+   if(G.state==='bonusdone')return;
+   stopTimer();G.state='bonusdone';const left=Math.max(0,G.bonusMs-G.elapsed),n=G.cells.filter(c=>!c.alive).length;
+-  const hist=store.get('cb_bonus',[]);hist.push({after:G.level,n,all:cleared,left:Math.round(left),d:Date.now()});store.set('cb_bonus',hist.slice(-50)); // kept for future rewards
++  const hist=store.get('cb_bonus',[]);hist.push({after:G.level,n,all:cleared,left:Math.round(left),d:Date.now()});if(!G.debug)store.set('cb_bonus',hist.slice(-50)); // kept for future rewards (not in debug runs)
+   if(cleared){Snd.win();FX.confetti();buzz(60);}else{Snd.timeup();buzz(120);$('grid').classList.add('dead');}
+   titleWord($('winTitle'),cleared?'PERFECT!':'TIME UP!');
+   $('winInfo').textContent=cleared?'Bonus round cleared with':'Bonus round – you bashed';
+   $('winTime').textContent=cleared?fmt(left,2)+'s':`${n} / ${G.cells.length}`;
+   $('winHearts').innerHTML=Array.from({length:Math.max(MAX_HEARTS,G.hearts)},(_,i)=>HEART_SVG.replace('class="heart"',`class="heart${i>=G.hearts?' lost':''}"`)).join('');
+   const b=$('winBadge');b.textContent=cleared?'★ TIME TO SPARE ★':(n>=G.cells.length-5?'So close!':'Nice bashing!');b.className=cleared?'badge':'badge plain';
+-  $('nextBtn').textContent='NEXT LEVEL';
++  $('nextBtn').textContent='NEXT LEVEL';if(G.debug){b.textContent='DEBUG RUN – NOT SAVED';b.className='badge plain';}
+   G.cd.push(setTimeout(()=>showOv('ovWin'),cleared?900:700));
+ }
+ function renderGrid(){
+@@ -621,10 +653,11 @@
+   stopTimer();G.state='win';stopWarn();const t=G.elapsed;Snd.win();FX.confetti();buzz(60);
+   const recs=store.get('cb_records',[]);const prevBest=recs.length?recs[0].t:Infinity;
+   const rec={t:Math.round(t),lv:G.level,h:G.hearts,d:Date.now()};recs.push(rec);recs.sort((a,b)=>a.t-b.t);const rank=recs.indexOf(rec)+1;
+-  store.set('cb_records',recs.slice(0,50));
++  if(!G.debug)store.set('cb_records',recs.slice(0,50));
+   titleWord($('winTitle'),'YOU WIN!');$('winInfo').textContent=`Level ${G.level} cleared in`;$('winTime').textContent=fmt(t,2)+'s';
+   $('winHearts').innerHTML=Array.from({length:Math.max(MAX_HEARTS,G.hearts)},(_,i)=>HEART_SVG.replace('class="heart"',`class="heart${i>=G.hearts?' lost':''}"`)).join('');
+   const b=$('winBadge');if(t<prevBest){b.textContent='★ NEW BEST TIME ★';b.className='badge';}else{b.textContent=rank<=50?`Rank #${rank} of ${Math.min(recs.length,50)}`:'Keep bashing!';b.className='badge plain';}
++  if(G.debug){b.textContent='DEBUG RUN – NOT SAVED';b.className='badge plain';}
+   $('nextBtn').textContent=G.level%BONUS_EVERY===0?'BONUS ROUND!':'NEXT LEVEL';
+   G.cd.push(setTimeout(()=>showOv('ovWin'),900));
+ }
+@@ -691,12 +724,27 @@
+ });
+ 
+ /* ---------- sound toggle ---------- */
+-function syncSound(){for(const id of ['soundBtn','soundBtn2'])$(id).textContent=Snd.muted?'🔇':'🔊';}
+-for(const id of ['soundBtn','soundBtn2'])$(id).addEventListener('click',()=>{Snd.muted=!Snd.muted;store.set('cb_muted',Snd.muted);syncSound();Snd.init();Snd.click();});
++function syncSound(){for(const id of ['soundBtn','soundBtn2'])$(id).textContent=Snd.muted?'🔇':'🔊';$('setSound').textContent=Snd.muted?'OFF':'ON';}
++for(const id of ['soundBtn','soundBtn2','setSound'])$(id).addEventListener('click',()=>{Snd.muted=!Snd.muted;store.set('cb_muted',Snd.muted);syncSound();Snd.init();Snd.click();});
+ 
+ /* ---------- wiring ---------- */
+ const ui=(id,fn)=>$(id).addEventListener('click',()=>{Snd.init();Snd.click();fn();});
+ ui('newBtn',newGame);ui('recBtn',()=>showScreen('records'));ui('recBack',()=>showScreen('title'));
++
++/* ---------- settings: debug level select (runs flagged G.debug, never saved) ---------- */
++const DBG={lv:1,bonusAfter:3};
++function setDebug(on){G.debug=on;$('game').classList.toggle('debug',on);}
++function lvDesc(l){const s=shuffleSecs(l),z=bonusSize(l);
++  return (s?`Shuffle every ${s}s, moving ${Math.round(Math.min(1,.4+.15*(l-2))*100)}% of blocks.`:'No shuffles.')+(l%BONUS_EVERY===0?` Bonus round (${z}×${z}) after this level.`:'');}
++function renderDbg(){$('lvVal').textContent=DBG.lv;$('lvInfo').textContent=lvDesc(DBG.lv);$('dbgLevel').textContent='PLAY LEVEL '+DBG.lv;
++  $('bonusSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.l===DBG.bonusAfter));
++  const z=bonusSize(DBG.bonusAfter);$('dbgBonus').textContent=`PLAY ${z}×${z} BONUS (${bonusTime(z)/1000}s)`;}
++function stepLv(d){DBG.lv=Math.max(1,Math.min(50,DBG.lv+d));renderDbg();}
++ui('setBtn',()=>{renderDbg();showOv('ovSettings');});ui('setClose',()=>showOv(null));
++ui('lvDown5',()=>stepLv(-5));ui('lvDown',()=>stepLv(-1));ui('lvUp',()=>stepLv(1));ui('lvUp5',()=>stepLv(5));
++$('bonusSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.bonusAfter=+b.dataset.l;renderDbg();});
++ui('dbgLevel',()=>{setDebug(true);G.level=DBG.lv;G.startHearts=G.hearts=MAX_HEARTS;startLevel(true);});
++ui('dbgBonus',()=>{setDebug(true);G.level=DBG.bonusAfter;G.startHearts=G.hearts=MAX_HEARTS;startBonus();});
+ ui('pauseBtn',pause);ui('resumeBtn',resume);ui('restartBtn',()=>startLevel(false));ui('quitBtn',toTitle);
+ ui('retryBtn',()=>startLevel(false));ui('overQuit',toTitle);
+ ui('nextBtn',()=>{G.startHearts=Math.max(MAX_HEARTS,G.hearts);
+@@ -715,6 +763,7 @@
+ 
+ /* Android hooks: back button + app pause */
+ window.cbBack=function(){
++  if($('ovSettings').classList.contains('show')){showOv(null);return true;}
+   if(screen==='records'){showScreen('title');return true;}
+   if(screen==='game'){
+     if(G.state==='play'||G.state==='countdown'){pause();return true;}

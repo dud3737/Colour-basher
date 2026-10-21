@@ -1,0 +1,64 @@
+--- colour-basher-1.2.1.html
++++ colour-basher-1.2.2.html
+@@ -167,6 +167,8 @@
+ .shuf{width:var(--bw);display:flex;align-items:center;gap:8px;visibility:hidden}
+ .shuf.on{visibility:visible}
+ .shuf span{font-size:11px;letter-spacing:.12em;background:var(--panel);border:3px solid var(--edge);border-radius:999px;padding:2px 9px}
++.shuf.go span{animation:sgo .8s ease-out}
++@keyframes sgo{0%,55%{background:#ffd400;color:#3a2600;transform:scale(1.15)}}
+ .shuf .track{flex:1;height:14px;border:3px solid var(--edge);border-radius:999px;background:var(--panel);overflow:hidden}
+ .shuf .fill{height:100%;width:100%;transform:scaleX(0);transform-origin:left;background:linear-gradient(90deg,#2fcf4f,#ffd400 60%,#ff3a3a)}
+ .shuf.warn .track{animation:warn .24s steps(2) infinite}
+@@ -348,7 +350,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.2.1';
++const VERSION='1.2.2';
+ const N=8, MAX_HEARTS=3, MAX_LIVES=5, COMBO_WINDOW=900;
+ const EYES='<i class="eye"></i><i class="eye r"></i>';
+ const STAR='<i class="star"><svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.7 7.2.7-5.4 4.8 1.6 7.1L12 17.4l-6.4 3.7 1.6-7.1-5.4-4.8 7.2-.7z"/></svg></i>';
+@@ -507,10 +509,14 @@
+   nm.textContent=col.name;$('tCount').textContent='×'+remaining(t);
+   if(swap)restart(sw,'swap');
+ }
++/* one shared banner: each message owns its own timer, so an older timer can never wipe a newer message */
++let bannerTok=0;
++function showBanner(html,ms,kind){const t=++bannerTok;G.bannerKind=kind;$('banner').innerHTML=html;
++  G.cd.push(setTimeout(()=>{if(t===bannerTok){$('banner').innerHTML='';G.bannerKind=null;}},ms));}
++function clearBanner(){bannerTok++;$('banner').innerHTML='';G.bannerKind=null;}
+ function countdown(){
+   G.state='countdown';clearTimers();
+-  $('banner').innerHTML=`<span class="outline">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`;
+-  G.cd.push(setTimeout(()=>{$('banner').innerHTML='';},1000));
++  showBanner(`<span class="outline">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`,1000,'intro');
+   ['3','2','1','GO!'].forEach((s,i)=>G.cd.push(setTimeout(()=>{
+     $('count').innerHTML=`<span class="outline${i===3?' go':''}">${s}</span>`;
+     if(i<3)Snd.tick();else{Snd.go();begin();}
+@@ -565,8 +571,7 @@
+   const done=COLOURS[G.order[G.ti]];G.ti++;renderChips();
+   if(G.ti>=G.order.length){win();return;}
+   Snd.clear();const nx=COLOURS[G.order[G.ti]];
+-  $('banner').innerHTML=`<div class="clearmsg"><div class="cpill" style="--pc:${done.c}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>${done.name} CLEARED</div><div class="nlbl outline">NEXT</div><div class="nname outline" style="color:${nx.c}">${nx.name}</div></div>`;
+-  G.cd.push(setTimeout(()=>{$('banner').innerHTML='';},1150));
++  showBanner(`<div class="clearmsg"><div class="cpill" style="--pc:${done.c}"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>${done.name} CLEARED</div><div class="nlbl outline">NEXT</div><div class="nname outline" style="color:${nx.c}">${nx.name}</div></div>`,1150,'clear');
+   updateTarget(true);
+ }
+ function gameOver(){
+@@ -612,13 +617,14 @@
+     a.onfinish=a.oncancel=()=>{holder.style.zIndex='';};});
+   setTimeout(()=>{G.shuffling=false;},420);
+   Snd.shuffle();buzz(40);
+-  $('banner').innerHTML='<span class="outline" style="color:#ffd400">SHUFFLE!</span>';G.cd.push(setTimeout(()=>{$('banner').innerHTML='';},950));
++  restart($('shuf'),'go');
++  if(G.bannerKind!=='clear')showBanner('<span class="outline" style="color:#ffd400">SHUFFLE!</span>',950,'shuffle');
+ }
+ 
+ function pause(){
+   if(G.chain){G.pauseAfterChain=true;return;}
+   if(G.state!=='play'&&G.state!=='countdown')return;
+-  G.resumeTo=G.state;clearTimers();stopTimer();$('count').innerHTML='';$('banner').innerHTML='';
++  G.resumeTo=G.state;clearTimers();stopTimer();$('count').innerHTML='';clearBanner();
+   G.state='paused';$('board').classList.add('blur');
+   $('pauseInfo').textContent=`Level ${G.level}  ·  ${fmt(G.elapsed)}s  ·  ${G.hearts} ♥ left${G.shufMs?`  ·  shuffle every ${G.shufMs/1000}s`:''}`;showOv('ovPause');
+ }

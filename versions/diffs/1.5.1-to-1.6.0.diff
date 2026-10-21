@@ -1,0 +1,86 @@
+--- colour-basher-1.5.1.html
++++ colour-basher-1.6.0.html
+@@ -113,6 +113,11 @@
+ .btn.green{--b1:#5fe07a;--b2:#16a336}
+ .btn.purple{--b1:#b57bff;--b2:#7a2de0}
+ .btn.yellow{--b1:#ffe866;--b2:#f2b600;color:#3a2600;text-shadow:none}
++.btn.pink{--b1:#ff8fd8;--b2:#e0399f}
++.motiv{font-family:var(--fd);font-size:clamp(30px,9.5vw,42px);line-height:1.25;text-align:center;padding:18px 4px 10px;animation:bob 1.8s ease-in-out .9s infinite}
++.motiv span{display:inline-block;animation:mpop .55s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(var(--i) * .1s);
++  text-shadow:3px 0 var(--edge),-3px 0 var(--edge),0 3px var(--edge),0 -3px var(--edge),2px 2px var(--edge),-2px 2px var(--edge),2px -2px var(--edge),-2px -2px var(--edge),0 6px 0 var(--edge)}
++@keyframes mpop{from{transform:scale(0) rotate(-20deg);opacity:0}}
+ .btn.small{font-size:16px;min-width:0;padding:10px 16px;border-radius:13px}
+ .iconbtn{width:46px;height:46px;flex:none;display:grid;place-items:center;border:3px solid var(--edge);border-radius:13px;background:var(--panel);
+   box-shadow:0 4px 0 var(--edge);cursor:pointer;color:var(--ink);font-size:20px;padding:0}
+@@ -376,10 +381,19 @@
+   <div class="badge" id="winBadge"></div>
+   <div class="btncol">
+     <button class="btn green" id="nextBtn">NEXT LEVEL</button>
++    <button class="btn pink" id="motivBtn">MOTIVATION</button>
+     <button class="btn purple" id="winQuit">QUIT TO TITLE</button>
+   </div>
+ </div></div>
+ 
++<div class="ov" id="ovMotiv"><div class="panel">
++  <div class="motiv" id="motivMsg"></div>
++  <div class="btncol">
++    <button class="btn green" id="motivNext">NEXT LEVEL</button>
++    <button class="btn purple" id="motivQuit">BACK TO MENU</button>
++  </div>
++</div></div>
++
+ <div class="ov" id="ovSettings"><div class="panel setpanel">
+   <h2 class="ov-title outline">SETTINGS</h2>
+   <div class="setrow"><span>Sound</span><button class="btn small blue" id="setSound">ON</button></div>
+@@ -412,7 +426,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.5.1';
++const VERSION='1.6.0';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+@@ -540,7 +554,7 @@
+ function fmt(ms,dp=1){const s=ms/1000;if(s<60)return s.toFixed(dp);const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(dp).padStart(dp?dp+3:2,'0');}
+ 
+ function showScreen(n){screen=n;for(const id of ['title','game','records'])$(id).classList.toggle('active',id===n);if(n==='title')updateBest();if(n==='records')renderRecords();}
+-function showOv(id){for(const o of ['ovPause','ovOver','ovWin','ovSettings'])$(o).classList.toggle('show',o===id);}
++function showOv(id){for(const o of ['ovPause','ovOver','ovWin','ovSettings','ovMotiv'])$(o).classList.toggle('show',o===id);}
+ function clearTimers(){G.cd.forEach(clearTimeout);G.cd=[];}
+ 
+ function newGame(){setDebug(false);G.score=0;G.runId=Date.now();G.level=1;G.startHearts=MAX_HEARTS;startLevel(true);}
+@@ -581,7 +595,7 @@
+   $('winTime').textContent=cleared?fmt(left,2)+'s':`${n} / ${G.cells.length}`;
+   $('winHearts').innerHTML=Array.from({length:Math.max(MAX_HEARTS,G.hearts)},(_,i)=>HEART_SVG.replace('class="heart"',`class="heart${i>=G.hearts?' lost':''}"`)).join('');
+   const b=$('winBadge');b.textContent=cleared?'★ TIME TO SPARE ★':(n>=G.cells.length-5?'So close!':'Nice bashing!');b.className=cleared?'badge':'badge plain';
+-  $('nextBtn').textContent='NEXT LEVEL';if(G.debug){b.textContent='DEBUG RUN – NOT SAVED';b.className='badge plain';}
++  $('nextBtn').textContent='NEXT LEVEL';$('motivBtn').style.display='none';if(G.debug){b.textContent='DEBUG RUN – NOT SAVED';b.className='badge plain';}
+   G.cd.push(setTimeout(()=>showOv('ovWin'),cleared?900:700));
+ }
+ function renderGrid(){
+@@ -707,7 +721,7 @@
+   $('winHearts').innerHTML=Array.from({length:Math.max(MAX_HEARTS,G.hearts)},(_,i)=>HEART_SVG.replace('class="heart"',`class="heart${i>=G.hearts?' lost':''}"`)).join('');
+   const b=$('winBadge');if(t<prevBest){b.textContent='★ NEW BEST TIME ★';b.className='badge';}else{b.textContent=rank<=50?`Rank #${rank} of ${Math.min(recs.length,50)}`:'Keep bashing!';b.className='badge plain';}
+   if(G.debug){b.textContent='DEBUG RUN – NOT SAVED';b.className='badge plain';}
+-  $('nextBtn').textContent=G.level%BONUS_EVERY===0?'BONUS ROUND!':'NEXT LEVEL';
++  $('nextBtn').textContent=G.level%BONUS_EVERY===0?'BONUS ROUND!':'NEXT LEVEL';$('motivBtn').style.display='';
+   G.cd.push(setTimeout(()=>showOv('ovWin'),900));
+ }
+ /* ---------- shuffles (level 2+) ---------- */
+@@ -811,6 +825,15 @@
+ ui('nextBtn',()=>{G.startHearts=Math.max(MAX_HEARTS,G.hearts);
+   if(!G.bonus&&G.level%BONUS_EVERY===0)startBonus();   // after levels 3, 6, 9…
+   else{G.level++;startLevel(true);}});ui('winQuit',toTitle);
++
++/* ---------- motivation (level win screen) ---------- */
++const MOTIVATION=['You are the greatest!','You are the best!','There is no stopping you!','Bash those blocks!','Life is a highway!','Intensity. Integrity. Intelligence!','🔥🔥 You are 🔥🔥'];
++let lastMotiv=-1;
++function showMotivation(){let i;do{i=Math.floor(Math.random()*MOTIVATION.length);}while(i===lastMotiv);lastMotiv=i;   // never the same message twice in a row
++  $('motivMsg').innerHTML=MOTIVATION[i].split(' ').map((w,k)=>`<span style="--i:${k};color:${COLOURS[(k+i)%COLOURS.length].c}">${w}</span>`).join(' ');
++  $('motivNext').textContent=$('nextBtn').textContent;showOv('ovMotiv');Snd.life();FX.confetti();buzz(30);}
++ui('motivBtn',showMotivation);ui('motivQuit',toTitle);
++$('motivNext').addEventListener('click',()=>$('nextBtn').click());
+ $('grid').addEventListener('pointerdown',e=>{const c=e.target.closest('.cell');if(!c)return;e.preventDefault();Snd.init();tap(+c.dataset.i);});
+ document.addEventListener('contextmenu',e=>e.preventDefault());
+ 

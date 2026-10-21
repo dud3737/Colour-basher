@@ -1,0 +1,183 @@
+# Changelog
+
+All notable changes to Colour Basher, newest first.
+Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
+The technical detail behind each release is in `CODE-CHANGES.md`.
+
+## [1.7.0] – 2026-10-21
+
+### Added
+- **Installable web app.** Colour Basher can now be hosted as a website and shared with a link. See `HOSTING.md`.
+  - Players can install it from the browser: "Install app" on Android Chrome, "Add to Home Screen" on iPhone Safari. It then gets its own icon and opens full screen in portrait, with no browser bars.
+  - Works **offline** after the first visit.
+  - Online players always get the newest version when they open the game.
+  - The browser is asked to keep records and scores safe from automatic clean-up.
+  - New icons in the same style as the Android launcher icon.
+- **Back button in the browser** now behaves like the Android app instead of leaving the page:
+  - During play it pauses, and pressing it again while paused resumes.
+  - It closes Settings, and steps back from Records or the results screens to the home screen.
+  - On the home screen it leaves the game as normal.
+
+### Unchanged
+- The Android app and the Claude-hosted page behave as before; the web-app features only switch on when the game runs as a normal website.
+
+## [1.6.0] – 2026-10-21
+
+### Added
+- **MOTIVATION** button on the level-complete screen, between Next Level and Quit to Title. Tapping it shows a random inspirational message in big, colourful, bouncing letters, with confetti and a jingle:
+  - You are the greatest!
+  - You are the best!
+  - There is no stopping you!
+  - Bash those blocks!
+  - Life is a highway!
+  - Intensity. Integrity. Intelligence!
+  - 🔥🔥 You are 🔥🔥
+- The same message never appears twice in a row.
+- Under the message: **NEXT LEVEL** (it reads BONUS ROUND! when a bonus round is next) and **BACK TO MENU**.
+- The button appears after normal levels only, not on the bonus round results screen.
+
+## [1.5.1] – 2026-10-21
+
+### Changed
+- All points now come in multiples of 10, so scores always end in 0.
+  - **Level time bonus:** 10 points per *whole* second under 90 s (was rounded to the nearest tenth of a second, which gave totals like 664).
+  - **Bonus round time-left bonus:** 100 per second, counted in tenths of a second (10 points per 0.1 s).
+  - **Bonus round blocks:** worth 30 points each (was 25, which gave totals like 625).
+- Scores already saved in Top scores keep their old values.
+
+## [1.5.0] – 2026-10-21
+
+### Added
+- Points system.
+  - **During a level:** 10 points per block, with a combo multiplier: ×2 from a 5-hit combo, ×3 from 10, ×4 from 15 upwards. +100 for each colour cleared, 20 per block destroyed by a COLOUR BLAST, and +100 for finding a hidden heart (only when it actually gives you a life). Wrong taps don't cost points.
+  - **On clearing a level:** time bonus (10 points for every second under 90 s), lives bonus (200 per heart left) and level bonus (250 × level number).
+  - **Bonus rounds:** 25 per block. Clearing the whole grid adds a 500 clear bonus plus 100 per second left.
+  - The score runs across the whole game. Restarting a level after Game Over (or from Pause) puts your score back to what it was at the start of that level, and the Game Over screen says so.
+- Scoreboard in the top right: the timer box now shows TIME and SCORE together. The score ticks up as you earn points, and a small white "+N" appears just below the scoreboard (never on the blocks). The BASH!/ドカン!/combo pop-ups are unchanged.
+- Points breakdown on the win and bonus screens, with each line appearing in turn and the total counting up. "NEW HIGH!" shows the first time a game passes your previous best score.
+- Records now has two tabs: **Fastest times** and **Top scores** (top 20 games, with the level reached and date). CLEAR clears the tab you're looking at.
+- The home screen shows your high score next to your best time.
+- Debug runs score points for testing but are never saved.
+
+## [1.4.1] – 2026-10-21
+
+### Changed
+- Hidden bonus lives are no longer wasted at max lives. Bashing a hidden-heart block while you have 5 lives no longer plays a pointless "+1 LIFE" animation. The heart quietly moves to another block that's still on the board, so you can collect it once you've dropped below 5. It only disappears if no blocks are left to move to.
+- Debug menu: new **Lives** option (3, 4 or 5) to set the starting lives for debug levels and bonus rounds.
+
+## [1.4.0] – 2026-10-21
+
+### Added
+- Settings menu: a ⚙️ button at the top left of the home screen. It has a sound on/off switch and a **Debug · Testing** section:
+  - **Level select:** choose any level from 1 to 50 (−5, −1, +1 and +5 buttons). A note shows that level's shuffle speed, how many blocks move, and whether a bonus round follows it. Then tap PLAY LEVEL.
+  - **Bonus round select:** pick 5×5, 6×6 or 7×7 and play it straight away (the button shows the time limit).
+  - From a debug start, the game carries on normally: Next Level, the bonus rounds every third level, and so on.
+- Debug runs are clearly marked:
+  - An orange DEBUG tag sits under the level box.
+  - The win and bonus screens show "DEBUG RUN – NOT SAVED".
+  - Nothing from a debug run goes into Records or the saved bonus results.
+- Starting a normal New Game switches debug mode off.
+- On Android, the back button closes the settings menu.
+
+## [1.3.3] – 2026-10-21
+
+### Changed
+- 7×7 bonus rounds (the 3rd bonus onwards, after levels 9, 12…) now give 15 seconds instead of 10. The 5×5 and 6×6 bonus rounds stay at 10 seconds. The intro ("BASH ALL 49 IN 15s"), countdown timer and pause screen all use the new time.
+
+## [1.3.2] – 2026-10-21
+
+### Fixed
+- Fixed a crash in the explosion effects ("IndexSizeError: … radius provided is negative"). It could happen in browsers or embedded views (such as the Claude app) whose animation frame times lag slightly behind the tap. Explosions now never run backwards, and shockwave rings and flashes can't get a negative size.
+
+## [1.3.1] – 2026-10-21
+
+### Changed
+- Bonus rounds are now easier and ramp up: fewer, bigger blocks on the same size board.
+  - 1st bonus (after level 3): 5×5, 25 blocks.
+  - 2nd bonus (after level 6): 6×6, 36 blocks.
+  - 3rd bonus onwards (after levels 9, 12…): 7×7, 49 blocks.
+  - Still 10 seconds. (Previously every bonus round was 8×8 with 64 blocks.)
+- The bonus intro, result ("bashed X / 25" etc.) and "So close!" threshold (within 5 blocks) now follow the grid size.
+- Block bevels and shadows scale with block size, so bigger blocks keep the same look.
+
+## [1.3.0] – 2026-10-21
+
+### Added
+- Bonus round after every third level (after levels 3, 6, 9 and so on). It isn't part of the level numbering: level 3 is followed by the bonus round, then level 4.
+  - The grid is all one random colour: 64 blocks to bash in 10 seconds.
+  - The timer counts down from 10.0 and is labelled TIME LEFT. It turns red and pulses for the last 3 seconds, with a tick each second.
+  - The level box shows BONUS ★, the board has a pulsing gold glow, and the colour-order chips and shuffle meter are hidden.
+  - Intro banner: "BONUS! / BASH ALL 64 IN 10s".
+  - No shuffles, stars or hidden hearts, and every tap is correct, so you can't lose hearts.
+  - Clearing all 64 shows "PERFECT!" with the time left over. Running out of time shows "TIME UP!" with how many you bashed (for example 44 / 64).
+  - One attempt only: there's no restart option during the bonus round. Pausing is allowed and stops the clock.
+  - Your hearts carry through the bonus round into the next level unchanged.
+- The win screen's button reads "BONUS ROUND!" when a bonus round is next.
+- Each bonus result is saved on the device, ready for the rewards to come. Bonus rounds don't appear in Records.
+
+## [1.2.2] – 2026-10-20
+
+### Fixed
+- The "colour cleared / NEXT" message could disappear early if a shuffle happened around the same time:
+  - If a shuffle fired just after you cleared a colour, "SHUFFLE!" replaced the message straight away.
+  - If you cleared a colour just after a shuffle, the shuffle's leftover timer wiped the message after about half a second.
+  - The message now always stays up for its full time.
+
+### Changed
+- While the colour-cleared message is showing, a shuffle no longer covers it with "SHUFFLE!". The shuffle meter's label flashes yellow instead, and it now flashes on every shuffle.
+
+## [1.2.1] – 2026-10-20
+
+### Changed
+- Redesigned the "colour cleared" message so the next colour is what you read first:
+  - The colour you just cleared now appears as a small pill with a tick ("✓ ORANGE CLEARED") in that colour.
+  - "NEXT" plus the next colour's name, large and in that colour, is now the main element.
+- The message now pops into the centre of the board, holds for about a second and fades out. Previously it slid across the board and could be cut off mid-move.
+- A dark, slightly see-through panel sits behind the message so it stands out against the blocks.
+
+## [1.2.0] – 2026-10-20
+
+### Added
+- Version number shown at the bottom of the title screen.
+- Hidden bonus lives. Some levels hide a heart inside one block, revealed only when that block is bashed. Bashing it gives +1 life and the heart flies up to the hearts bar.
+  - Chance per level starts at 50% and rises 5% per level, up to 80%.
+  - You can hold up to 5 lives.
+  - Extra lives carry into the next level; if you finish with fewer than 3, you start the next level with 3.
+- Star power-up. On about 60% of levels one block shows a glowing star instead of a face. Bash it when its colour is the target and every remaining block of that colour explodes in a chain reaction ("COLOUR BLAST!"). Tapping it out of turn still costs a heart.
+- Tips box on the title screen explaining the star block and hidden hearts.
+
+### Changed
+- The hearts bar grows to show up to 5 hearts, using smaller icons above 3.
+- The win screen and Records screen show bonus hearts.
+- Shuffles now carry hidden hearts and stars along with the blocks that move.
+
+## [1.1.0] – 2026-10-14
+
+### Added
+- Levels get progressively harder through shuffles, starting at level 2:
+  - Shuffle interval: 10 s at level 2, then 8, 7, 6, 5, 4.5, 4 and 3.5 s, reaching 3 s from level 12.
+  - Share of blocks moved: 40% at level 2, rising 15% per level, so every block moves from level 6.
+- Shuffle meter under the grid that fills up towards the next shuffle.
+- Shuffle warning in the last 0.9 s: the blocks about to move jitter, the meter flashes red and a warning beep plays.
+- Level intro at the start of each level showing "LEVEL n" and the shuffle speed.
+- Shuffle speed shown on the pause screen.
+
+### Changed
+- The 3-2-1 countdown now starts just after the level intro.
+- Taps are ignored during the brief (~0.4 s) shuffle animation so you can't hit a block mid-move.
+
+## [1.0.0] – 2026-10-14
+
+First release.
+
+- Title screen with New Game, Records, best time and sound toggle.
+- 8×8 grid filled at random from seven colours (blue, red, green, yellow, orange, purple, pink), with every colour guaranteed to appear.
+- Target colour shown above the grid with a count of blocks left, plus a row of chips showing the colour order.
+- Timer (top right) that counts up from "GO!".
+- Three hearts. Bashing the wrong colour costs one; losing all three means Game Over, with the option to restart the same grid.
+- Explosion effects, combo counter, screen shake, synthesised sound effects and vibration.
+- "YOU WIN" screen with your time; each win is saved to Records (top 20 shown).
+- Level counter with a new random grid each level.
+- Pause button that blurs the board, plus auto-pause when you leave the app.
+- Light and dark mode.
+- Android app wrapper: full screen, back-button support, vibration.

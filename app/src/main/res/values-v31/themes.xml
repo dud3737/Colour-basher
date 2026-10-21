@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.ColourBasher" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/cb_bg</item>
+        <item name="android:windowSplashScreenBackground">@color/cb_bg</item>
+    </style>
+</resources>

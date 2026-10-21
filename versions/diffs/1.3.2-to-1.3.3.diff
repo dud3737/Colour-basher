@@ -1,0 +1,57 @@
+--- colour-basher-1.3.2.html
++++ colour-basher-1.3.3.html
+@@ -356,8 +356,9 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.3.2';
++const VERSION='1.3.3';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
++const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+ const N=8, MAX_HEARTS=3, MAX_LIVES=5, COMBO_WINDOW=900;
+ const EYES='<i class="eye"></i><i class="eye r"></i>';
+@@ -507,12 +508,12 @@
+   G.ti=0;G.chain=false;G.pauseAfterChain=false;G.elapsed=0;G.running=false;G.combo=0;G.lastHit=0;G.tickSec=null;
+   G.shufMs=0;G.warned=false;G.pool=null;G.shuffling=false;$('shuf').classList.remove('on','warn');
+   showOv(null);showScreen('game');$('board').classList.remove('blur');
+-  renderGrid();renderHearts();updateTarget(true);$('lvl').textContent='★';$('time').textContent=fmt(BONUS_MS);lastShown='';
++  renderGrid();renderHearts();updateTarget(true);$('lvl').textContent='★';G.bonusMs=bonusTime(G.size);$('time').textContent=fmt(G.bonusMs);lastShown='';
+   countdown();
+ }
+ function bonusEnd(cleared){
+   if(G.state==='bonusdone')return;
+-  stopTimer();G.state='bonusdone';const left=Math.max(0,BONUS_MS-G.elapsed),n=G.cells.filter(c=>!c.alive).length;
++  stopTimer();G.state='bonusdone';const left=Math.max(0,G.bonusMs-G.elapsed),n=G.cells.filter(c=>!c.alive).length;
+   const hist=store.get('cb_bonus',[]);hist.push({after:G.level,n,all:cleared,left:Math.round(left),d:Date.now()});store.set('cb_bonus',hist.slice(-50)); // kept for future rewards
+   if(cleared){Snd.win();FX.confetti();buzz(60);}else{Snd.timeup();buzz(120);$('grid').classList.add('dead');}
+   titleWord($('winTitle'),cleared?'PERFECT!':'TIME UP!');
+@@ -552,7 +553,7 @@
+ function clearBanner(){bannerTok++;$('banner').innerHTML='';G.bannerKind=null;}
+ function countdown(){
+   G.state='countdown';clearTimers();
+-  showBanner(G.bonus?`<span class="outline" style="color:#ffd400">BONUS!<small style="color:#fff">BASH ALL ${G.size*G.size} IN ${BONUS_MS/1000}s</small></span>`:`<span class="outline">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`,1000,'intro');
++  showBanner(G.bonus?`<span class="outline" style="color:#ffd400">BONUS!<small style="color:#fff">BASH ALL ${G.size*G.size} IN ${G.bonusMs/1000}s</small></span>`:`<span class="outline">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`,1000,'intro');
+   ['3','2','1','GO!'].forEach((s,i)=>G.cd.push(setTimeout(()=>{
+     $('count').innerHTML=`<span class="outline${i===3?' go':''}">${s}</span>`;
+     if(i<3)Snd.tick();else{Snd.go();begin();}
+@@ -664,7 +665,7 @@
+   if(G.state!=='play'&&G.state!=='countdown')return;
+   G.resumeTo=G.state;clearTimers();stopTimer();$('count').innerHTML='';clearBanner();
+   G.state='paused';$('board').classList.add('blur');
+-  $('pauseInfo').textContent=`Level ${G.level}  ·  ${fmt(G.elapsed)}s  ·  ${G.hearts} ♥ left${G.shufMs?`  ·  shuffle every ${G.shufMs/1000}s`:''}`;if(G.bonus)$('pauseInfo').textContent=`Bonus round  ·  ${fmt(Math.max(0,BONUS_MS-G.elapsed))}s left`;showOv('ovPause');
++  $('pauseInfo').textContent=`Level ${G.level}  ·  ${fmt(G.elapsed)}s  ·  ${G.hearts} ♥ left${G.shufMs?`  ·  shuffle every ${G.shufMs/1000}s`:''}`;if(G.bonus)$('pauseInfo').textContent=`Bonus round  ·  ${fmt(Math.max(0,G.bonusMs-G.elapsed))}s left`;showOv('ovPause');
+ }
+ function resume(){
+   if(G.state!=='paused')return;showOv(null);$('board').classList.remove('blur');
+@@ -707,8 +708,8 @@
+ /* live timer */
+ let lastShown='';
+ const TB=document.querySelector('.timebox');
+-(function loop(){if(screen==='game'){const e=elapsed(),s=fmt(G.bonus?Math.max(0,BONUS_MS-e):e);if(s!==lastShown){$('time').textContent=s;lastShown=s;}
+-  if(G.bonus){const live=G.state==='play',rem=BONUS_MS-e;TB.classList.toggle('hot',live&&rem<3000);
++(function loop(){if(screen==='game'){const e=elapsed(),s=fmt(G.bonus?Math.max(0,G.bonusMs-e):e);if(s!==lastShown){$('time').textContent=s;lastShown=s;}
++  if(G.bonus){const live=G.state==='play',rem=G.bonusMs-e;TB.classList.toggle('hot',live&&rem<3000);
+     if(live){const sec=Math.ceil(rem/1000);if(sec<=3&&sec>0&&sec!==G.tickSec){G.tickSec=sec;Snd.tick();}if(rem<=0)bonusEnd(false);}}
+   else if(G.shufMs)tickShuffle(e);}requestAnimationFrame(loop);})();
+ 

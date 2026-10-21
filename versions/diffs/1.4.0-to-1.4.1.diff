@@ -1,0 +1,59 @@
+--- colour-basher-1.4.0.html
++++ colour-basher-1.4.1.html
+@@ -363,6 +363,7 @@
+   <div class="dbg">
+     <div class="dbg-h">DEBUG · TESTING</div>
+     <p class="dbg-note">Jump straight to any level or bonus round. Debug runs aren’t saved to Records.</p>
++    <div class="setrow"><span>Lives</span><div class="seg" id="livesSeg"><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
+     <div class="setrow"><span>Level</span><div class="stepper"><button class="iconbtn" id="lvDown5">−5</button><button class="iconbtn" id="lvDown">−</button><b id="lvVal">1</b><button class="iconbtn" id="lvUp">+</button><button class="iconbtn" id="lvUp5">+5</button></div></div>
+     <p class="lvinfo" id="lvInfo"></p>
+     <button class="btn green" id="dbgLevel">PLAY LEVEL 1</button>
+@@ -388,7 +389,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.4.0';
++const VERSION='1.4.1';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+@@ -613,10 +614,12 @@
+     if(G.hearts<=0)gameOver();
+   }
+ }
++/* at max lives a hidden heart isn't used up: it quietly hops to another unbashed block, ready for when you drop below max */
++function moveHeart(from){from.item=null;const spots=G.cells.filter(c=>c.alive&&!c.item);if(spots.length)pick(spots).item='heart';}
+ function smash(cell,x,y,w,pitch){
+   cell.alive=false;cell.el.classList.remove('ouch','jitter');cell.el.classList.add('bashed');
+   FX.explode(x,y,COLOURS[cell.c],w);Snd.bash(pitch);
+-  if(cell.item==='heart')gainHeart(x,y);
++  if(cell.item==='heart'){if(G.hearts<MAX_LIVES)gainHeart(x,y);else moveHeart(cell);}
+ }
+ /* star power-up: chain-explodes every remaining block of the target colour, nearest first */
+ function colourBlast(sx,sy,target){
+@@ -732,19 +735,21 @@
+ ui('newBtn',newGame);ui('recBtn',()=>showScreen('records'));ui('recBack',()=>showScreen('title'));
+ 
+ /* ---------- settings: debug level select (runs flagged G.debug, never saved) ---------- */
+-const DBG={lv:1,bonusAfter:3};
++const DBG={lv:1,bonusAfter:3,lives:MAX_HEARTS};
+ function setDebug(on){G.debug=on;$('game').classList.toggle('debug',on);}
+ function lvDesc(l){const s=shuffleSecs(l),z=bonusSize(l);
+   return (s?`Shuffle every ${s}s, moving ${Math.round(Math.min(1,.4+.15*(l-2))*100)}% of blocks.`:'No shuffles.')+(l%BONUS_EVERY===0?` Bonus round (${z}×${z}) after this level.`:'');}
+-function renderDbg(){$('lvVal').textContent=DBG.lv;$('lvInfo').textContent=lvDesc(DBG.lv);$('dbgLevel').textContent='PLAY LEVEL '+DBG.lv;
++function renderDbg(){$('livesSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===DBG.lives));
++  $('lvVal').textContent=DBG.lv;$('lvInfo').textContent=lvDesc(DBG.lv);$('dbgLevel').textContent='PLAY LEVEL '+DBG.lv;
+   $('bonusSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.l===DBG.bonusAfter));
+   const z=bonusSize(DBG.bonusAfter);$('dbgBonus').textContent=`PLAY ${z}×${z} BONUS (${bonusTime(z)/1000}s)`;}
+ function stepLv(d){DBG.lv=Math.max(1,Math.min(50,DBG.lv+d));renderDbg();}
+ ui('setBtn',()=>{renderDbg();showOv('ovSettings');});ui('setClose',()=>showOv(null));
+ ui('lvDown5',()=>stepLv(-5));ui('lvDown',()=>stepLv(-1));ui('lvUp',()=>stepLv(1));ui('lvUp5',()=>stepLv(5));
+ $('bonusSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.bonusAfter=+b.dataset.l;renderDbg();});
+-ui('dbgLevel',()=>{setDebug(true);G.level=DBG.lv;G.startHearts=G.hearts=MAX_HEARTS;startLevel(true);});
+-ui('dbgBonus',()=>{setDebug(true);G.level=DBG.bonusAfter;G.startHearts=G.hearts=MAX_HEARTS;startBonus();});
++$('livesSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.lives=+b.dataset.v;renderDbg();});
++ui('dbgLevel',()=>{setDebug(true);G.level=DBG.lv;G.startHearts=G.hearts=DBG.lives;startLevel(true);});
++ui('dbgBonus',()=>{setDebug(true);G.level=DBG.bonusAfter;G.startHearts=G.hearts=DBG.lives;startBonus();});
+ ui('pauseBtn',pause);ui('resumeBtn',resume);ui('restartBtn',()=>startLevel(false));ui('quitBtn',toTitle);
+ ui('retryBtn',()=>startLevel(false));ui('overQuit',toTitle);
+ ui('nextBtn',()=>{G.startHearts=Math.max(MAX_HEARTS,G.hearts);

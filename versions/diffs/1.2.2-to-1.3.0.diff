@@ -1,0 +1,144 @@
+--- colour-basher-1.2.2.html
++++ colour-basher-1.3.0.html
+@@ -168,6 +168,12 @@
+ .shuf.on{visibility:visible}
+ .shuf span{font-size:11px;letter-spacing:.12em;background:var(--panel);border:3px solid var(--edge);border-radius:999px;padding:2px 9px}
+ .shuf.go span{animation:sgo .8s ease-out}
++#game.bonus .chips{visibility:hidden}
++#game.bonus .lvl b{color:#ffd400}
++#game.bonus .board{animation:bglow 1.1s ease-in-out infinite alternate}
++@keyframes bglow{from{box-shadow:0 0 0 3px #ffd400,0 6px 0 var(--edge),0 0 16px 4px rgba(255,212,0,.45)}to{box-shadow:0 0 0 3px #ffd400,0 6px 0 var(--edge),0 0 34px 10px rgba(255,212,0,.8)}}
++.timebox.hot b{color:#ff3a3a;animation:hot .45s ease-in-out infinite alternate}
++@keyframes hot{to{transform:scale(1.12)}}
+ @keyframes sgo{0%,55%{background:#ffd400;color:#3a2600;transform:scale(1.15)}}
+ .shuf .track{flex:1;height:14px;border:3px solid var(--edge);border-radius:999px;background:var(--panel);overflow:hidden}
+ .shuf .fill{height:100%;width:100%;transform:scaleX(0);transform-origin:left;background:linear-gradient(90deg,#2fcf4f,#ffd400 60%,#ff3a3a)}
+@@ -269,10 +275,10 @@
+     <button class="iconbtn" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 20 20"><rect x="3" y="2" width="5" height="16" rx="1.5" fill="currentColor"/><rect x="12" y="2" width="5" height="16" rx="1.5" fill="currentColor"/></svg></button>
+     <div class="hearts" id="hearts"></div>
+     <div class="spacer"></div>
+-    <div class="timebox"><small>TIME</small><b id="time">0.0</b></div>
++    <div class="timebox"><small id="timeLbl">TIME</small><b id="time">0.0</b></div>
+   </div>
+   <div class="hud">
+-    <div class="lvl"><small>LEVEL</small><b id="lvl">1</b></div>
++    <div class="lvl"><small id="lvlLbl">LEVEL</small><b id="lvl">1</b></div>
+     <div class="target">
+       <div class="tswatch" id="tSwatch"><i class="eye"></i><i class="eye r"></i></div>
+       <div class="tinfo"><small>BASH ALL</small><b id="tName">RED</b></div>
+@@ -350,7 +356,8 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.2.2';
++const VERSION='1.3.0';
++const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const N=8, MAX_HEARTS=3, MAX_LIVES=5, COMBO_WINDOW=900;
+ const EYES='<i class="eye"></i><i class="eye r"></i>';
+ const STAR='<i class="star"><svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.7 7.2.7-5.4 4.8 1.6 7.1L12 17.4l-6.4 3.7 1.6-7.1-5.4-4.8 7.2-.7z"/></svg></i>';
+@@ -401,6 +408,7 @@
+   shuffle(){this.burst(.4,700,.35);this.tone('triangle',260,1300,.32,.14);},
+   life(){[659,880,1175,1568].forEach((f,i)=>this.tone('triangle',f,f*1.01,.14,.17,i*.07));},
+   blast(){this.burst(.8,2600,.6);this.tone('sawtooth',110,40,.6,.22);[784,988,1175,1568].forEach((f,i)=>this.tone('square',f,f,.1,.11,.05+i*.06));},
++  timeup(){this.tone('square',523,523,.18,.16);this.tone('square',392,392,.45,.16,.2);},
+   tick(){this.tone('square',660,660,.08,.15);},
+   go(){this.tone('square',1320,1320,.28,.17);},
+   click(){this.tone('triangle',700,1100,.06,.12);}
+@@ -479,7 +487,7 @@
+ 
+ function newGame(){G.level=1;G.startHearts=MAX_HEARTS;startLevel(true);}
+ function startLevel(fresh){
+-  clearTimers();
++  clearTimers();setMode(false);
+   if(fresh||!G.grid){G.grid=genGrid();G.order=genOrder();G.items=genItems(G.level);}
+   G.ti=0;G.hearts=G.startHearts||MAX_HEARTS;G.chain=false;G.pauseAfterChain=false;G.elapsed=0;G.running=false;G.combo=0;G.lastHit=0;
+   G.shufMs=shuffleSecs(G.level)*1000;G.nextShuf=G.shufMs;G.warned=false;G.pool=null;G.shuffling=false;
+@@ -488,6 +496,32 @@
+   renderGrid();renderHearts();renderChips();updateTarget(true);$('lvl').textContent=G.level;$('time').textContent=fmt(0);
+   countdown();
+ }
++/* ---------- bonus round: one solid colour, bash all 64 in 10 s (not a numbered level) ---------- */
++function setMode(b){G.bonus=b;$('game').classList.toggle('bonus',b);$('lvlLbl').textContent=b?'BONUS':'LEVEL';
++  $('timeLbl').textContent=b?'TIME LEFT':'TIME';$('restartBtn').style.display=b?'none':'';}
++function startBonus(){
++  clearTimers();setMode(true);
++  const c=Math.floor(Math.random()*COLOURS.length);
++  G.grid=Array(N*N).fill(c);G.order=[c];G.items=Array(N*N).fill(null);
++  G.ti=0;G.chain=false;G.pauseAfterChain=false;G.elapsed=0;G.running=false;G.combo=0;G.lastHit=0;G.tickSec=null;
++  G.shufMs=0;G.warned=false;G.pool=null;G.shuffling=false;$('shuf').classList.remove('on','warn');
++  showOv(null);showScreen('game');$('board').classList.remove('blur');
++  renderGrid();renderHearts();updateTarget(true);$('lvl').textContent='★';$('time').textContent=fmt(BONUS_MS);lastShown='';
++  countdown();
++}
++function bonusEnd(cleared){
++  if(G.state==='bonusdone')return;
++  stopTimer();G.state='bonusdone';const left=Math.max(0,BONUS_MS-G.elapsed),n=G.cells.filter(c=>!c.alive).length;
++  const hist=store.get('cb_bonus',[]);hist.push({after:G.level,n,all:cleared,left:Math.round(left),d:Date.now()});store.set('cb_bonus',hist.slice(-50)); // kept for future rewards
++  if(cleared){Snd.win();FX.confetti();buzz(60);}else{Snd.timeup();buzz(120);$('grid').classList.add('dead');}
++  titleWord($('winTitle'),cleared?'PERFECT!':'TIME UP!');
++  $('winInfo').textContent=cleared?'Bonus round cleared with':'Bonus round – you bashed';
++  $('winTime').textContent=cleared?fmt(left,2)+'s':`${n} / ${N*N}`;
++  $('winHearts').innerHTML=Array.from({length:Math.max(MAX_HEARTS,G.hearts)},(_,i)=>HEART_SVG.replace('class="heart"',`class="heart${i>=G.hearts?' lost':''}"`)).join('');
++  const b=$('winBadge');b.textContent=cleared?'★ TIME TO SPARE ★':(n>=N*N-8?'So close!':'Nice bashing!');b.className=cleared?'badge':'badge plain';
++  $('nextBtn').textContent='NEXT LEVEL';
++  G.cd.push(setTimeout(()=>showOv('ovWin'),cleared?900:700));
++}
+ function renderGrid(){
+   const grid=$('grid');grid.classList.remove('dead');grid.innerHTML='';
+   G.cells=G.grid.map((c,i)=>{const col=COLOURS[c],cell=document.createElement('div'),b=document.createElement('div');
+@@ -516,7 +550,7 @@
+ function clearBanner(){bannerTok++;$('banner').innerHTML='';G.bannerKind=null;}
+ function countdown(){
+   G.state='countdown';clearTimers();
+-  showBanner(`<span class="outline">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`,1000,'intro');
++  showBanner(G.bonus?`<span class="outline" style="color:#ffd400">BONUS!<small style="color:#fff">BASH ALL ${N*N} IN ${BONUS_MS/1000}s</small></span>`:`<span class="outline">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`,1000,'intro');
+   ['3','2','1','GO!'].forEach((s,i)=>G.cd.push(setTimeout(()=>{
+     $('count').innerHTML=`<span class="outline${i===3?' go':''}">${s}</span>`;
+     if(i<3)Snd.tick();else{Snd.go();begin();}
+@@ -580,6 +614,7 @@
+   G.cd.push(setTimeout(()=>showOv('ovOver'),750));
+ }
+ function win(){
++  if(G.bonus){bonusEnd(true);return;}
+   stopTimer();G.state='win';stopWarn();const t=G.elapsed;Snd.win();FX.confetti();buzz(60);
+   const recs=store.get('cb_records',[]);const prevBest=recs.length?recs[0].t:Infinity;
+   const rec={t:Math.round(t),lv:G.level,h:G.hearts,d:Date.now()};recs.push(rec);recs.sort((a,b)=>a.t-b.t);const rank=recs.indexOf(rec)+1;
+@@ -587,6 +622,7 @@
+   titleWord($('winTitle'),'YOU WIN!');$('winInfo').textContent=`Level ${G.level} cleared in`;$('winTime').textContent=fmt(t,2)+'s';
+   $('winHearts').innerHTML=Array.from({length:Math.max(MAX_HEARTS,G.hearts)},(_,i)=>HEART_SVG.replace('class="heart"',`class="heart${i>=G.hearts?' lost':''}"`)).join('');
+   const b=$('winBadge');if(t<prevBest){b.textContent='★ NEW BEST TIME ★';b.className='badge';}else{b.textContent=rank<=50?`Rank #${rank} of ${Math.min(recs.length,50)}`:'Keep bashing!';b.className='badge plain';}
++  $('nextBtn').textContent=G.level%BONUS_EVERY===0?'BONUS ROUND!':'NEXT LEVEL';
+   G.cd.push(setTimeout(()=>showOv('ovWin'),900));
+ }
+ /* ---------- shuffles (level 2+) ---------- */
+@@ -626,7 +662,7 @@
+   if(G.state!=='play'&&G.state!=='countdown')return;
+   G.resumeTo=G.state;clearTimers();stopTimer();$('count').innerHTML='';clearBanner();
+   G.state='paused';$('board').classList.add('blur');
+-  $('pauseInfo').textContent=`Level ${G.level}  ·  ${fmt(G.elapsed)}s  ·  ${G.hearts} ♥ left${G.shufMs?`  ·  shuffle every ${G.shufMs/1000}s`:''}`;showOv('ovPause');
++  $('pauseInfo').textContent=`Level ${G.level}  ·  ${fmt(G.elapsed)}s  ·  ${G.hearts} ♥ left${G.shufMs?`  ·  shuffle every ${G.shufMs/1000}s`:''}`;if(G.bonus)$('pauseInfo').textContent=`Bonus round  ·  ${fmt(Math.max(0,BONUS_MS-G.elapsed))}s left`;showOv('ovPause');
+ }
+ function resume(){
+   if(G.state!=='paused')return;showOv(null);$('board').classList.remove('blur');
+@@ -660,13 +696,19 @@
+ ui('newBtn',newGame);ui('recBtn',()=>showScreen('records'));ui('recBack',()=>showScreen('title'));
+ ui('pauseBtn',pause);ui('resumeBtn',resume);ui('restartBtn',()=>startLevel(false));ui('quitBtn',toTitle);
+ ui('retryBtn',()=>startLevel(false));ui('overQuit',toTitle);
+-ui('nextBtn',()=>{G.level++;G.startHearts=Math.max(MAX_HEARTS,G.hearts);startLevel(true);});ui('winQuit',toTitle);
++ui('nextBtn',()=>{G.startHearts=Math.max(MAX_HEARTS,G.hearts);
++  if(!G.bonus&&G.level%BONUS_EVERY===0)startBonus();   // after levels 3, 6, 9…
++  else{G.level++;startLevel(true);}});ui('winQuit',toTitle);
+ $('grid').addEventListener('pointerdown',e=>{const c=e.target.closest('.cell');if(!c)return;e.preventDefault();Snd.init();tap(+c.dataset.i);});
+ document.addEventListener('contextmenu',e=>e.preventDefault());
+ 
+ /* live timer */
+ let lastShown='';
+-(function loop(){if(screen==='game'){const e=elapsed(),s=fmt(e);if(s!==lastShown){$('time').textContent=s;lastShown=s;}if(G.shufMs)tickShuffle(e);}requestAnimationFrame(loop);})();
++const TB=document.querySelector('.timebox');
++(function loop(){if(screen==='game'){const e=elapsed(),s=fmt(G.bonus?Math.max(0,BONUS_MS-e):e);if(s!==lastShown){$('time').textContent=s;lastShown=s;}
++  if(G.bonus){const live=G.state==='play',rem=BONUS_MS-e;TB.classList.toggle('hot',live&&rem<3000);
++    if(live){const sec=Math.ceil(rem/1000);if(sec<=3&&sec>0&&sec!==G.tickSec){G.tickSec=sec;Snd.tick();}if(rem<=0)bonusEnd(false);}}
++  else if(G.shufMs)tickShuffle(e);}requestAnimationFrame(loop);})();
+ 
+ /* Android hooks: back button + app pause */
+ window.cbBack=function(){

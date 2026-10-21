@@ -1,0 +1,39 @@
+--- colour-basher-1.6.0.html
++++ colour-basher-1.7.0.html
+@@ -426,7 +426,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.6.0';
++const VERSION='1.7.0';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+@@ -553,8 +553,15 @@
+ function stopTimer(){if(G.running){G.elapsed+=performance.now()-G.t0;G.running=false;}}
+ function fmt(ms,dp=1){const s=ms/1000;if(s<60)return s.toFixed(dp);const m=Math.floor(s/60);return m+':'+(s-m*60).toFixed(dp).padStart(dp?dp+3:2,'0');}
+ 
+-function showScreen(n){screen=n;for(const id of ['title','game','records'])$(id).classList.toggle('active',id===n);if(n==='title')updateBest();if(n==='records')renderRecords();}
+-function showOv(id){for(const o of ['ovPause','ovOver','ovWin','ovSettings','ovMotiv'])$(o).classList.toggle('show',o===id);}
++function showScreen(n){screen=n;for(const id of ['title','game','records'])$(id).classList.toggle('active',id===n);if(n==='title')updateBest();if(n==='records')renderRecords();syncTrap();}
++function showOv(id){for(const o of ['ovPause','ovOver','ovWin','ovSettings','ovMotiv'])$(o).classList.toggle('show',o===id);syncTrap();}
++/* ---------- web app: browser back button pauses / steps back instead of leaving the page ---------- */
++const WEBAPP=!window.AndroidBridge&&window.top===window&&!!(history&&history.pushState);
++const BT={trapped:false,skip:false};
++function syncTrap(){if(!WEBAPP)return;const need=screen!=='title'||$('ovSettings').classList.contains('show');
++  if(need&&!BT.trapped){history.pushState({cb:1},'');BT.trapped=true;}
++  else if(!need&&BT.trapped){BT.trapped=false;BT.skip=true;history.back();}}
++if(WEBAPP)window.addEventListener('popstate',()=>{if(BT.skip){BT.skip=false;return;}BT.trapped=false;if(window.cbBack)window.cbBack();syncTrap();});
+ function clearTimers(){G.cd.forEach(clearTimeout);G.cd=[];}
+ 
+ function newGame(){setDebug(false);G.score=0;G.runId=Date.now();G.level=1;G.startHearts=MAX_HEARTS;startLevel(true);}
+@@ -862,6 +869,9 @@
+ window.addEventListener('resize',()=>FX.resize());
+ 
+ FX.resize();buildTitle();syncSound();updateBest();$('ver').textContent='v'+VERSION;
++/* web app: offline support + ask the browser to keep records safe (skipped inside the Android app and Claude's viewer) */
++if(WEBAPP&&'serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
++  window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}});}
+ })();
+ </script>
+ </body>
