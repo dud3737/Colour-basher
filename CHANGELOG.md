@@ -4,6 +4,12 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.7.6] – 2026-10-21
+
+### Changed
+- The **level intro** ("LEVEL 4 / SHUFFLE EVERY 7s") and **bonus intro** ("BONUS! / BASH ALL 25 IN 10s") now stay on screen for about 2 seconds. Previously they slid past in under 1 second. The intro pops in, holds in the centre, then fades, and the 3-2-1-GO countdown starts straight after.
+- **No change to game timings.** The level timer still starts at GO, so level times, bonus time limits and shuffle timing are exactly as before. The only difference is about 1.2 seconds more to read the intro before the countdown.
+
 ## [1.7.5] – 2026-10-21
 
 ### Fixed

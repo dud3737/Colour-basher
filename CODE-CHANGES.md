@@ -25,6 +25,32 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.7.6 – 2026-10-21
+
+Exact diff: `versions/diffs/1.7.5-to-1.7.6.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `INTRO_MS` | **New** constant (2200 ms): how long the intro banner stays up. |
+| JS | `countdown()` | Intro banner shown for `INTRO_MS` (was 1000 ms) with the new `hold` class. 3-2-1-GO now starts at `INTRO_MS + 100` (was 1100 ms), at the same 650 ms spacing. `begin()`, and with it `startTimer()`, still runs at GO. |
+| CSS | `.banner span.hold`, `@keyframes introHold` | Pop-in, hold, fade over `--hold` (set to `INTRO_MS`), replacing the 0.95 s `sweep` slide for intros only. Shuffle and other banners still sweep. |
+| JS | `VERSION` | `'1.7.5'` → `'1.7.6'` |
+| Android | `app/build.gradle.kts` | `versionCode` 20 → 21, `versionName` "1.7.5" → "1.7.6". |
+
+**Acceptance criterion: game timings unchanged.** Tested in a headless browser with a frame-by-frame probe, comparing 1.7.5 and 1.7.6 on debug level 2:
+- **Intro readable:** about 0.82 s on 1.7.5, about 1.93 s on 1.7.6.
+- **Countdown:** "3" appeared at 1.06 s → 2.27 s, and GO at 3.02 s → 4.24 s.
+- **Timer:** started at GO on both versions.
+- **First shuffle warning:** 9.09 s after GO on 1.7.5 and 9.08 s on 1.7.6, i.e. identical.
+
+Also checked:
+- **Pausing during the intro:** the timer stayed at 0.0, and resuming replayed the intro and countdown.
+- **Level timing:** the level-clear time was measured from GO.
+- **Mid-level pause:** resuming still uses the quick 3-2-1 with no intro.
+- **Bonus round:** the intro also holds about 1.9 s, and the 10 s timer starts at GO.
+
+---
+
 ## 1.7.5 – 2026-10-21
 
 Exact diff: `versions/diffs/1.7.4-to-1.7.5.diff`
