@@ -4,6 +4,13 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.7.7] – 2026-10-21
+
+### Changed
+- The iPhone zoom fixes from 1.7.3–1.7.5 now switch on **only in Safari's engine**. That covers Safari on iPhone and iPad (and other browsers there, which all use Safari's engine).
+- **Android Chrome** now handles touches exactly as it did before those fixes, with no extra touch listeners and no change to scrolling in Records or Settings.
+- iPhone behaviour is unchanged.
+
 ## [1.7.6] – 2026-10-21
 
 ### Changed

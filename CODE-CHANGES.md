@@ -25,6 +25,27 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.7.7 – 2026-10-21
+
+Exact diff: `versions/diffs/1.7.6-to-1.7.7.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `ZOOM_GUARD` | **New** flag: `'ongesturestart' in window`, which is true only in WebKit (Safari on iPhone, iPad and Mac, plus every browser on iOS). Sets the class `zg` on `<html>`. |
+| JS | Zoom guards | Everything added in 1.7.3–1.7.5 (gesture-event blocks, document two-finger `touchmove`, document `touchend` double-tap guard, board `touchstart` cancel, `visualViewport` snap-back) now sits inside `if (ZOOM_GUARD) { … }`. Removed a leftover comment from 1.7.4. |
+| CSS | `.zg #game`, `.zg .stage`, `.zg .stage *` | `touch-action: none` now applies only under `zg`. `.stage` is back to plain `position: relative`. |
+| JS | `VERSION` | `'1.7.6'` → `'1.7.7'` |
+| Android | `app/build.gradle.kts` | `versionCode` 21 → 22, `versionName` "1.7.6" → "1.7.7". |
+
+Unchanged on all browsers: the 1.7.3 effects-canvas fix and the body's `touch-action: manipulation`.
+
+**Tested** in a headless Chromium emulating a touch phone, listing the actual event listeners through Chrome DevTools:
+- **Android Chrome, 1.7.2 (before the iPhone fixes):** no guard class, touch-action `manipulation` / `auto`, no touch listeners on the document or board.
+- **Android Chrome, 1.7.7:** identical to 1.7.2. Rapid real taps all bashed.
+- **Simulated Safari** (`ongesturestart` present), 1.7.7: guard class on, blocks `touch-action: none`, all guards attached (`gesture*`, `touchmove` and `touchend` on the document, `touchstart` on the board). Rapid taps all bashed.
+
+---
+
 ## 1.7.6 – 2026-10-21
 
 Exact diff: `versions/diffs/1.7.5-to-1.7.6.diff`
