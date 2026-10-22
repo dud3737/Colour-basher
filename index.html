@@ -243,6 +243,8 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 .count span.go{font-size:calc(var(--bw) * .2);color:#ffd400}
 @keyframes cd{0%{transform:scale(2.4);opacity:0}25%{transform:scale(1);opacity:1}75%{transform:scale(1);opacity:1}100%{transform:scale(.6);opacity:0}}
 .banner span{font-family:var(--fd);font-size:calc(var(--bw) * .14);line-height:1.1;animation:sweep .95s cubic-bezier(.2,.9,.3,1) forwards}
+.banner span.hold{animation:introHold var(--hold,2.2s) cubic-bezier(.2,1.4,.4,1) forwards}   /* level / bonus intro: pops in, holds, fades */
+@keyframes introHold{0%{transform:scale(.4);opacity:0}10%{transform:scale(1);opacity:1}88%{transform:scale(1);opacity:1}100%{transform:scale(1.05);opacity:0}}
 .banner small{display:block;font-size:.42em;letter-spacing:.05em}
 .clearmsg{line-height:1.05;background:rgba(13,8,40,.78);border:3px solid #07041a;border-radius:20px;padding:14px 24px 12px;animation:cpop 1.15s cubic-bezier(.2,1.4,.4,1) forwards}
 .cpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--fd);font-size:max(13px,calc(var(--bw) * .04));letter-spacing:.06em;color:var(--pc);background:#07041a;border:2px solid var(--pc);border-radius:999px;padding:4px 12px;margin-bottom:10px}
@@ -447,7 +449,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='1.7.5';
+const VERSION='1.7.6';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -657,14 +659,15 @@ let bannerTok=0;
 function showBanner(html,ms,kind){const t=++bannerTok;G.bannerKind=kind;$('banner').innerHTML=html;
   G.cd.push(setTimeout(()=>{if(t===bannerTok){$('banner').innerHTML='';G.bannerKind=null;}},ms));}
 function clearBanner(){bannerTok++;$('banner').innerHTML='';G.bannerKind=null;}
+const INTRO_MS=2200;   // how long the LEVEL / BONUS intro stays up before 3-2-1-GO (the level timer only starts at GO)
 function countdown(){
   G.state='countdown';clearTimers();
-  showBanner(G.bonus?`<span class="outline" style="color:#ffd400">BONUS!<small style="color:#fff">BASH ALL ${G.size*G.size} IN ${G.bonusMs/1000}s</small></span>`:`<span class="outline">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`,1000,'intro');
+  showBanner(G.bonus?`<span class="outline hold" style="--hold:${INTRO_MS}ms;color:#ffd400">BONUS!<small style="color:#fff">BASH ALL ${G.size*G.size} IN ${G.bonusMs/1000}s</small></span>`:`<span class="outline hold" style="--hold:${INTRO_MS}ms">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`,INTRO_MS,'intro');
   ['3','2','1','GO!'].forEach((s,i)=>G.cd.push(setTimeout(()=>{
     $('count').innerHTML=`<span class="outline${i===3?' go':''}">${s}</span>`;
     if(i<3)Snd.tick();else{Snd.go();begin();}
-  },1100+i*650)));
-  G.cd.push(setTimeout(()=>{$('count').innerHTML='';},1100+4*650));
+  },INTRO_MS+100+i*650)));
+  G.cd.push(setTimeout(()=>{$('count').innerHTML='';},INTRO_MS+100+4*650));
 }
 function begin(){G.cells.forEach(c=>c.el.classList.remove('drop'));G.state='play';startTimer();}
 
