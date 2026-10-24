@@ -4,6 +4,11 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.8.2] – 2026-10-22
+
+### Added
+- New Motivation message: **"The power is in your hands⚡"**.
+
 ## [1.8.1] – 2026-10-22
 
 ### Fixed

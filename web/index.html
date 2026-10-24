@@ -132,6 +132,9 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 .motiv span{display:inline-block;animation:mpop .55s cubic-bezier(.2,1.6,.4,1) both;animation-delay:calc(var(--i) * .1s);
   text-shadow:3px 0 var(--edge),-3px 0 var(--edge),0 3px var(--edge),0 -3px var(--edge),2px 2px var(--edge),-2px 2px var(--edge),2px -2px var(--edge),-2px -2px var(--edge),0 6px 0 var(--edge)}
 @keyframes mpop{from{transform:scale(0) rotate(-20deg);opacity:0}}
+.zap{font-weight:inherit;display:inline-block;cursor:pointer}
+.zap.used{animation:zapspin .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes zapspin{40%{transform:scale(1.8) rotate(-25deg)}100%{transform:none}}
 .btn.small{font-size:16px;min-width:0;padding:10px 16px;border-radius:13px}
 .iconbtn{width:46px;height:46px;flex:none;display:grid;place-items:center;border:3px solid var(--edge);border-radius:13px;background:var(--panel);
   box-shadow:0 4px 0 var(--edge);cursor:pointer;color:var(--ink);font-size:20px;padding:0}
@@ -477,7 +480,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='1.8.1';
+const VERSION='1.8.2';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -959,12 +962,18 @@ ui('nextBtn',()=>{G.startHearts=Math.max(MAX_HEARTS,G.hearts);
   else{G.level++;startLevel(true);}});ui('winQuit',toTitle);
 
 /* ---------- motivation (level win screen) ---------- */
-const MOTIVATION=['You are the greatest!','You are the best!','There is no stopping you!','Bash those blocks!','Life is a highway!','Intensity. Integrity. Intelligence!','🔥🔥 You are 🔥🔥'];
+const MOTIVATION=['You are the greatest!','You are the best!','There is no stopping you!','Bash those blocks!','Life is a highway!','Intensity. Integrity. Intelligence!','🔥🔥 You are 🔥🔥','The power is in your hands⚡'];
 let lastMotiv=-1;
 function showMotivation(){let i;do{i=Math.floor(Math.random()*MOTIVATION.length);}while(i===lastMotiv);lastMotiv=i;   // never the same message twice in a row
-  $('motivMsg').innerHTML=MOTIVATION[i].split(' ').map((w,k)=>`<span style="--i:${k};color:${COLOURS[(k+i)%COLOURS.length].c}">${w}</span>`).join(' ');
+  $('motivMsg').innerHTML=MOTIVATION[i].split(' ').map((w,k)=>`<span style="--i:${k};color:${COLOURS[(k+i)%COLOURS.length].c}">${w.replace('⚡','<b class="zap">⚡</b>')}</span>`).join(' ');G.zapUsed=false;
   $('motivNext').textContent=$('nextBtn').textContent;showOv('ovMotiv');Snd.life();FX.confetti();buzz(30);}
 ui('motivBtn',showMotivation);ui('motivQuit',toTitle);
+/* hidden: tapping the ⚡ in "The power is in your hands⚡" grants one random power-up (once per showing, within the max of 3 each) */
+$('motivMsg').addEventListener('click',e=>{const z=e.target.closest('.zap');if(!z||G.zapUsed)return;G.inv=G.inv||{star:0,freeze:0};
+  const opts=['star','freeze'].filter(k=>G.inv[k]<PU_MAX);if(!opts.length)return;G.zapUsed=true;const k=pick(opts);G.inv[k]++;
+  const r=z.getBoundingClientRect();popText(r.left+r.width/2,r.top,k==='star'?'★ +1':'❄ +1',k==='star'?'#ffd400':'#7fd8ff',true);
+  const p=document.body.lastElementChild;if(p&&p.classList.contains('pop'))p.style.zIndex=80;
+  restart(z,'used');Snd.life();buzz(30);});
 $('motivNext').addEventListener('click',()=>$('nextBtn').click());
 $('grid').addEventListener('pointerdown',e=>{const c=e.target.closest('.cell');if(!c)return;e.preventDefault();Snd.init();tap(+c.dataset.i);});
 document.addEventListener('contextmenu',e=>{if(!e.target.closest('input'))e.preventDefault();});   // keep long-press paste working in the password box

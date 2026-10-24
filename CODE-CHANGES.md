@@ -25,6 +25,25 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.8.2 – 2026-10-22
+
+Exact diff: `versions/diffs/1.8.1-to-1.8.2.diff`
+
+> **Hidden cheat.** This is deliberately not in `CHANGELOG.md`.
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `MOTIVATION` | Added "The power is in your hands⚡" (8 messages). |
+| JS | `showMotivation()` | Any ⚡ in a message is wrapped in `<b class="zap">`. Resets `G.zapUsed`. |
+| JS | `#motivMsg` click listener | **Cheat:** tapping `.zap` adds one random power-up (`star` or `freeze`, chosen only from types below `PU_MAX`), once per showing of the message. Shows a "★ +1" / "❄ +1" pop-up above the overlay (z-index 80), a spin and a jingle. It counts towards the next level's inventory, which includes the restart snapshot, and works before level 7 too; the power-up then waits in the inventory. |
+| CSS | `.zap`, `.zap.used`, `@keyframes zapspin` | Tap target and spin feedback. No visual hint that it's tappable. |
+| JS | `VERSION` | `'1.8.1'` → `'1.8.2'` |
+| Android | `app/build.gradle.kts` | `versionCode` 24 → 25, `versionName` "1.8.1" → "1.8.2". |
+
+**Tested** in a headless browser: debug level 7, cleared, then Motivation shown until the new message appeared. The new message rendered with one `.zap` element, and the other messages had none. Tapping ⚡ three times added exactly **one** power-up in two separate runs ([0,0] → [1,0], and [1,1] → [1,2]), visible in level 8's power-ups bar.
+
+---
+
 ## 1.8.1 – 2026-10-22
 
 Exact diff: `versions/diffs/1.8.0-to-1.8.1.diff`
