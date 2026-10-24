@@ -1,0 +1,248 @@
+--- colour-basher-1.7.7.html
++++ colour-basher-1.8.0.html
+@@ -130,8 +130,8 @@
+ .iconbtn svg{width:20px;height:20px}
+ 
+ /* ---------- game screen ---------- */
+-#game{--bw:min(94vw,calc(100vh - 260px),560px);padding:10px 10px 12px;gap:9px;justify-content:center}
+-@supports (height:100dvh){#game{--bw:min(94vw,calc(100dvh - 260px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)),560px)}}
++#game{--bw:min(94vw,calc(100vh - 310px),560px);padding:10px 10px 12px;gap:9px;justify-content:center}
++@supports (height:100dvh){#game{--bw:min(94vw,calc(100dvh - 310px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)),560px)}}
+ .hud{width:max(var(--bw),min(94vw,340px));display:flex;align-items:center;gap:8px}
+ .spacer{flex:1}
+ .hearts{display:flex;gap:2px;padding:4px 8px;background:var(--panel);border:3px solid var(--edge);border-radius:13px;box-shadow:0 4px 0 var(--edge);height:46px;align-items:center}
+@@ -226,6 +226,29 @@
+ .shuf .track{flex:1;height:14px;border:3px solid var(--edge);border-radius:999px;background:var(--panel);overflow:hidden}
+ .shuf .fill{height:100%;width:100%;transform:scaleX(0);transform-origin:left;background:linear-gradient(90deg,#2fcf4f,#ffd400 60%,#ff3a3a)}
+ .shuf.warn .track{animation:warn .24s steps(2) infinite}
++.shuf.frozen .fill{background:linear-gradient(90deg,#bff3ff,#38b6ff)}
++.shuf.frozen .track{border-color:#1673c9}
++.shuf.frozen span{background:#bff3ff;color:#0b3d6b}
++/* power-ups bar (level 7+) */
++.pus{width:var(--bw);display:flex;align-items:center;gap:10px;visibility:hidden;min-height:50px}
++.pus.on{visibility:visible}
++.pul{font-size:11px;letter-spacing:.12em;background:var(--panel);border:3px solid var(--edge);border-radius:999px;padding:2px 9px;white-space:nowrap}
++.pu{position:relative;width:46px;height:46px;flex:none;border:3px solid var(--edge);border-radius:13px;background:var(--panel);box-shadow:0 4px 0 var(--edge);padding:4px;cursor:pointer;display:grid;place-items:center}
++.pu:active{transform:translateY(3px);box-shadow:0 1px 0 var(--edge)}
++.pu:disabled{opacity:.35;cursor:default;transform:none;box-shadow:0 4px 0 var(--edge)}
++.pui{width:100%;height:100%;border-radius:24%;display:grid;place-items:center;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
++.pui.star{background:conic-gradient(#ff3a3a,#ff8c1a,#ffd400,#2fcf4f,#2f74ff,#9a46ff,#ff5fc8,#ff3a3a)}
++.pui.frz{background:linear-gradient(160deg,#d6f7ff,#38b6ff 55%,#1673c9)}
++.pui svg{width:74%;height:74%;overflow:visible}
++.pu b{position:absolute;right:-9px;top:-9px;min-width:21px;height:21px;border-radius:999px;background:#ff3a3a;color:#fff;border:2px solid var(--edge);font-family:var(--fd);font-size:11px;display:grid;place-items:center;padding:0 4px}
++.pu:disabled b{background:var(--panel2);color:var(--ink)}
++.pu.armed{animation:puarm .5s ease-in-out infinite alternate;box-shadow:0 0 0 3px #ffd400,0 4px 0 var(--edge)}
++.pu.got{animation:hgain .5s cubic-bezier(.3,1.6,.5,1)}
++@keyframes puarm{to{transform:scale(1.12)}}
++.puhint{flex:1;min-width:0;font-size:12px;line-height:1.3;text-align:left}
++.puhint:not(:empty){background:var(--panel);border:3px solid var(--edge);border-radius:12px;padding:4px 8px}
++#game.armed .board{box-shadow:0 0 0 4px #ffd400,0 6px 0 var(--edge),0 0 30px 8px rgba(255,212,0,.6)}
++.flyheart .pui{width:100%;height:100%}
+ @keyframes warn{50%{background:#ff3a3a}}
+ 
+ .count,.banner{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;text-align:center;z-index:3}
+@@ -299,7 +322,7 @@
+   .bg::before,.fall,.logo .row span,.ov-title span,.eye{animation:none}
+   .shake-s,.shake-l{animation:none}
+ }
+-@media (max-height:620px){#game{--bw:min(94vw,calc(100vh - 230px),560px);gap:6px}.lvl,.target{height:60px}.tswatch{width:44px;height:44px}}
++@media (max-height:620px){#game{--bw:min(94vw,calc(100vh - 280px),560px);gap:6px}.lvl,.target{height:60px}.tswatch{width:44px;height:44px}}
+ </style>
+ </head>
+ <body>
+@@ -315,7 +338,7 @@
+     <button class="btn red" id="newBtn">NEW GAME</button>
+     <button class="btn blue" id="recBtn">RECORDS</button>
+     <div class="best" id="bestLbl"></div>
+-    <div class="tips"><b>★ Star block</b> – bash it to blast every block of its colour<br><i>♥</i> Some blocks hide a bonus life</div>
++    <div class="tips"><b>★ Star block</b> – bash it to blast every block of its colour<br><i>♥</i> Some blocks hide a bonus life<br><b style="color:#38b6ff">❄ From level 7</b> – find power-ups, then tap them under the grid</div>
+   </div>
+   <div class="ver" id="ver"></div>
+ </section>
+@@ -343,6 +366,10 @@
+     <div class="banner" id="banner"></div>
+   </div>
+   <div class="shuf" id="shuf"><span>SHUFFLE</span><div class="track"><div class="fill" id="shufFill"></div></div></div>
++  <div class="pus" id="pus"><span class="pul">POWER-UPS</span>
++    <button class="pu" id="puStar" aria-label="Star power-up: blast a colour of your choice"><i class="pui star"><svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.7 7.2.7-5.4 4.8 1.6 7.1L12 17.4l-6.4 3.7 1.6-7.1-5.4-4.8 7.2-.7z" fill="#fff" stroke="#1a1033" stroke-width="1.6" stroke-linejoin="round"/></svg></i><b id="puStarN">0</b></button>
++    <button class="pu" id="puFreeze" aria-label="Freeze power-up: stop shuffles for 15 seconds"><i class="pui frz"><svg viewBox="0 0 24 24"><g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v20M3.3 7l17.4 10M3.3 17l17.4-10"/><path d="M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5M3.8 10.4l3.6-.7-1.3-3.6M20.2 13.6l-3.6.7 1.3 3.6M3.8 13.6l3.6.7-1.3 3.6M20.2 10.4l-3.6-.7 1.3-3.6"/></g></svg></i><b id="puFreezeN">0</b></button>
++    <span class="puhint" id="puHint"></span></div>
+ </section>
+ 
+ <!-- RECORDS -->
+@@ -414,6 +441,7 @@
+     <div class="dbg-h">DEBUG · TESTING</div>
+     <p class="dbg-note">Jump straight to any level or bonus round. Debug runs aren’t saved to Records.</p>
+     <div class="setrow"><span>Lives</span><div class="seg" id="livesSeg"><button data-v="3">3</button><button data-v="4">4</button><button data-v="5">5</button></div></div>
++    <div class="setrow"><span>Power-ups</span><div class="seg" id="puSeg"><button data-v="0">0</button><button data-v="1">1</button><button data-v="3">3</button></div></div>
+     <div class="setrow"><span>Level</span><div class="stepper"><button class="iconbtn" id="lvDown5">−5</button><button class="iconbtn" id="lvDown">−</button><b id="lvVal">1</b><button class="iconbtn" id="lvUp">+</button><button class="iconbtn" id="lvUp5">+5</button></div></div>
+     <p class="lvinfo" id="lvInfo"></p>
+     <button class="btn green" id="dbgLevel">PLAY LEVEL 1</button>
+@@ -439,7 +467,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='1.7.7';
++const VERSION='1.8.0';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+@@ -494,6 +522,7 @@
+   life(){[659,880,1175,1568].forEach((f,i)=>this.tone('triangle',f,f*1.01,.14,.17,i*.07));},
+   blast(){this.burst(.8,2600,.6);this.tone('sawtooth',110,40,.6,.22);[784,988,1175,1568].forEach((f,i)=>this.tone('square',f,f,.1,.11,.05+i*.06));},
+   timeup(){this.tone('square',523,523,.18,.16);this.tone('square',392,392,.45,.16,.2);},
++  freeze(){[1568,2093,2637,3136].forEach((f,i)=>this.tone('triangle',f,f*1.02,.18,.12,i*.06));this.burst(.5,5000,.12);},
+   tick(){this.tone('square',660,660,.08,.15);},
+   go(){this.tone('square',1320,1320,.28,.17);},
+   click(){this.tone('triangle',700,1100,.06,.12);}
+@@ -555,10 +584,13 @@
+ function genGrid(){let g;do{g=Array.from({length:N*N},()=>Math.floor(Math.random()*COLOURS.length));}while(new Set(g).size<COLOURS.length);return g;}
+ function genOrder(){const o=COLOURS.map((_,i)=>i);for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]];}return o;}
+ /* hidden bonus life (more likely as levels rise) and a visible star power-up */
++/* power-ups (from level 7, i.e. after the 2nd bonus round): hidden in blocks, kept in the bar under the grid */
++const PU_FROM=2*BONUS_EVERY+1, PU_MAX=3, PU_CHANCE=.35, FREEZE_MS=15000;
+ function genItems(level){
+   const it=Array(N*N).fill(null),spots=shuffleArr([...Array(N*N).keys()]);
+   if(Math.random()<Math.min(.8,.45+.05*level))it[spots.pop()]='heart';
+   if(Math.random()<.6)it[spots.pop()]='power';
++  if(level>=PU_FROM){if(Math.random()<PU_CHANCE)it[spots.pop()]='puStar';if(Math.random()<PU_CHANCE)it[spots.pop()]='puFreeze';}
+   return it;
+ }
+ function setLook(o){const col=COLOURS[o.c];for(const k of ['c','l','d'])o.el.style.setProperty('--'+k,col[k]);
+@@ -581,7 +613,7 @@
+ if(WEBAPP)window.addEventListener('popstate',()=>{if(BT.skip){BT.skip=false;return;}BT.trapped=false;if(window.cbBack)window.cbBack();syncTrap();});
+ function clearTimers(){G.cd.forEach(clearTimeout);G.cd=[];}
+ 
+-function newGame(){setDebug(false);G.score=0;G.runId=Date.now();G.level=1;G.startHearts=MAX_HEARTS;startLevel(true);}
++function newGame(){setDebug(false);G.score=0;G.runId=Date.now();G.inv={star:0,freeze:0};G.level=1;G.startHearts=MAX_HEARTS;startLevel(true);}
+ function startLevel(fresh){
+   clearTimers();setMode(false);G.size=N;
+   G.score=G.score||0;if(fresh)G.levelStartScore=G.score;else G.score=G.levelStartScore;   // a restart rolls the score back to the start of the level
+@@ -589,9 +621,11 @@
+   if(fresh||!G.grid){G.grid=genGrid();G.order=genOrder();G.items=genItems(G.level);}
+   G.ti=0;G.hearts=G.startHearts||MAX_HEARTS;G.chain=false;G.pauseAfterChain=false;G.elapsed=0;G.running=false;G.combo=0;G.lastHit=0;
+   G.shufMs=shuffleSecs(G.level)*1000;G.nextShuf=G.shufMs;G.warned=false;G.pool=null;G.shuffling=false;
++  G.inv=G.inv||{star:0,freeze:0};if(fresh)G.invStart={...G.inv};else G.inv={...G.invStart};   // a restart also rolls power-ups back
++  G.armed=false;G.freezeEnd=0;G.fzShown=0;$('shuf').classList.remove('frozen');$('shuf').firstElementChild.textContent='SHUFFLE';
+   $('shuf').classList.toggle('on',G.shufMs>0);$('shuf').classList.remove('warn');$('shufFill').style.transform='scaleX(0)';
+   showOv(null);showScreen('game');$('board').classList.remove('blur');
+-  renderGrid();renderHearts();renderChips();updateTarget(true);$('lvl').textContent=G.level;$('time').textContent=fmt(0);
++  renderGrid();renderHearts();renderChips();updateTarget(true);renderPU();$('lvl').textContent=G.level;$('time').textContent=fmt(0);
+   countdown();
+ }
+ /* ---------- bonus round: one solid colour, bash all 64 in 10 s (not a numbered level) ---------- */
+@@ -602,7 +636,7 @@
+   const c=Math.floor(Math.random()*COLOURS.length),n=G.size*G.size;
+   G.grid=Array(n).fill(c);G.order=[c];G.items=Array(n).fill(null);
+   G.ti=0;G.chain=false;G.pauseAfterChain=false;G.elapsed=0;G.running=false;G.combo=0;G.lastHit=0;G.tickSec=null;
+-  G.shufMs=0;G.warned=false;G.pool=null;G.shuffling=false;$('shuf').classList.remove('on','warn');
++  G.shufMs=0;G.warned=false;G.pool=null;G.shuffling=false;G.armed=false;G.freezeEnd=0;$('shuf').classList.remove('on','warn','frozen');renderPU();
+   showOv(null);showScreen('game');$('board').classList.remove('blur');
+   renderGrid();renderHearts();updateTarget(true);$('lvl').textContent='★';G.bonusMs=bonusTime(G.size);$('time').textContent=fmt(G.bonusMs);lastShown='';
+   countdown();
+@@ -667,11 +701,12 @@
+ function tap(i){
+   if(G.state!=='play'||G.shuffling||G.chain)return;const cell=G.cells[i];if(!cell||!cell.alive)return;
+   const r=cell.el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,target=G.order[G.ti];
++  if(G.armed){starBlast(cell,x,y);return;}   // star power-up armed: any block works, no penalty
+   if(cell.c===target){
+     const now=performance.now();G.combo=now-G.lastHit<COMBO_WINDOW?G.combo+1:1;G.lastHit=now;
+     smash(cell,x,y,r.width,G.combo-1);buzz(14);restart($('stage'),'shake-s');addScore(G.bonus?30:10*comboMult(G.combo));
+     if(cell.item==='power'){colourBlast(x,y,target);return;}
+-    if(cell.item!=='heart'){if(G.combo>=3)popText(x,y,G.combo+' COMBO!','#ffd400',true);else popText(x,y,pick(BASH_WORDS),COLOURS[cell.c].l);}
++    if(!cell.item){if(G.combo>=3)popText(x,y,G.combo+' COMBO!','#ffd400',true);else popText(x,y,pick(BASH_WORDS),COLOURS[cell.c].l);}
+     const left=remaining(target);$('tCount').textContent='×'+left;restart($('tCount'),'bump');
+     if(left===0)colourCleared();
+   }else{
+@@ -686,6 +721,7 @@
+   cell.alive=false;cell.el.classList.remove('ouch','jitter');cell.el.classList.add('bashed');
+   FX.explode(x,y,COLOURS[cell.c],w);Snd.bash(pitch);
+   if(cell.item==='heart'){if(G.hearts<MAX_LIVES)gainHeart(x,y);else moveHeart(cell);}
++  else if(cell.item==='puStar'||cell.item==='puFreeze')gainPU(cell.item==='puStar'?'star':'freeze',x,y);
+ }
+ /* star power-up: chain-explodes every remaining block of the target colour, nearest first */
+ function colourBlast(sx,sy,target){
+@@ -696,6 +732,41 @@
+   rest.forEach((o,k)=>setTimeout(()=>{smash(o.c,o.r.left+o.r.width/2,o.r.top+o.r.height/2,o.r.width,k+2);addScore(20);},120+k*60));
+   setTimeout(()=>{G.chain=false;colourCleared();if(G.pauseAfterChain){G.pauseAfterChain=false;pause();}},120+rest.length*60+200);
+ }
++/* ---------- power-ups ---------- */
++function puActive(){return !G.bonus&&G.level>=PU_FROM;}
++function renderPU(){G.inv=G.inv||{star:0,freeze:0};$('pus').classList.toggle('on',puActive());
++  $('puStarN').textContent=G.inv.star;$('puFreezeN').textContent=G.inv.freeze;
++  $('puStar').disabled=!G.inv.star&&!G.armed;$('puFreeze').disabled=!G.inv.freeze||!G.shufMs;
++  $('puStar').classList.toggle('armed',!!G.armed);$('game').classList.toggle('armed',!!G.armed);
++  const e=elapsed(),fz=G.freezeEnd>e;
++  $('puHint').textContent=G.armed?'Tap any block to blast its colour':fz?`Shuffles frozen – ${Math.ceil((G.freezeEnd-e)/1000)}s`:'';}
++function gainPU(k,x,y){
++  const full=G.inv[k]>=PU_MAX;if(!full)G.inv[k]++;addScore(100);
++  popText(x,y,full?'POWER-UPS FULL':(k==='star'?'★ STAR POWER-UP!':'❄ FREEZE POWER-UP!'),k==='star'?'#ffd400':'#7fd8ff',true);Snd.life();buzz(45);
++  const slot=$(k==='star'?'puStar':'puFreeze'),d=document.createElement('div');d.className='flyheart';
++  d.innerHTML=slot.querySelector('.pui').outerHTML;d.style.left=x+'px';d.style.top=y+'px';document.body.appendChild(d);
++  const s=slot.getBoundingClientRect(),tx=s.left+s.width/2-x,ty=s.top+s.height/2-y;
++  const a=d.animate([{transform:'translate(-50%,-50%) scale(.3)'},{transform:'translate(-50%,-50%) translateY(-40px) scale(1.6)',offset:.35},{transform:`translate(-50%,-50%) translate(${tx}px,${ty}px) scale(.9)`}],{duration:850,easing:'ease-in-out'});
++  a.onfinish=a.oncancel=()=>{d.remove();if(screen==='game'){renderPU();restart(slot,'got');}};
++}
++function useStar(){   // tap once to arm, then tap any block; tap the star again to cancel
++  if(!puActive()||G.state!=='play'||G.chain||G.shuffling)return;
++  if(G.armed){G.armed=false;renderPU();return;}
++  if(!G.inv.star)return;G.armed=true;renderPU();
++}
++function starBlast(cell,x,y){   // blast the chosen colour; if it isn't the current target, it jumps the queue (the current target becomes next)
++  G.armed=false;G.inv.star--;renderPU();
++  const c=cell.c,idx=G.order.indexOf(c,G.ti);
++  if(idx>G.ti){G.order.splice(idx,1);G.order.splice(G.ti,0,c);renderChips();updateTarget(true);}
++  colourBlast(x,y,c);
++}
++function useFreeze(){   // holds the shuffle countdown for 15 s of play time; using another adds 15 s more
++  if(!puActive()||!G.inv.freeze||!G.shufMs||G.state!=='play')return;
++  const e=elapsed();G.inv.freeze--;
++  if(!(G.freezeEnd>e)){if(G.warned)stopWarn();G.frozenLeft=Math.max(G.nextShuf-e,1500);}
++  G.freezeEnd=Math.max(G.freezeEnd||0,e)+FREEZE_MS;G.fzShown=0;
++  Snd.freeze();buzz(40);popText(innerWidth/2,$('shuf').getBoundingClientRect().top,'SHUFFLES FROZEN!','#7fd8ff',true);renderPU();
++}
+ /* hidden bonus life: flies up to the hearts bar (max 5) */
+ function gainHeart(x,y){
+   const capped=G.hearts>=MAX_LIVES;if(!capped){G.hearts++;addScore(100);}
+@@ -754,9 +825,12 @@
+ function shuffleArr(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+ function stopWarn(){G.warned=false;G.pool=null;$('shuf').classList.remove('warn');G.cells.forEach(c=>c.el.classList.remove('jitter'));}
+ function tickShuffle(e){
++  const fz=G.freezeEnd>e;$('shuf').classList.toggle('frozen',fz);$('shuf').firstElementChild.textContent=fz?'FROZEN':'SHUFFLE';
++  if(fz){G.nextShuf=e+G.frozenLeft;const s=Math.ceil((G.freezeEnd-e)/1000);if(s!==G.fzShown){G.fzShown=s;renderPU();}}
++  else if(G.fzShown){G.fzShown=0;renderPU();}
+   const left=G.nextShuf-e;
+   $('shufFill').style.transform=`scaleX(${Math.min(1,Math.max(0,1-left/G.shufMs)).toFixed(3)})`;
+-  if(G.state!=='play'||G.chain)return;
++  if(fz||G.state!=='play'||G.chain)return;
+   if(left<=900&&!G.warned){
+     G.warned=true;const alive=G.cells.filter(c=>c.alive);
+     if(alive.length<2||new Set(alive.map(c=>c.c)).size<2){G.pool=null;return;}
+@@ -830,11 +904,12 @@
+ ui('newBtn',newGame);ui('recBtn',()=>showScreen('records'));ui('recBack',()=>showScreen('title'));
+ 
+ /* ---------- settings: debug level select (runs flagged G.debug, never saved) ---------- */
+-const DBG={lv:1,bonusAfter:3,lives:MAX_HEARTS};
++const DBG={lv:1,bonusAfter:3,lives:MAX_HEARTS,pu:0};
+ function setDebug(on){G.debug=on;$('game').classList.toggle('debug',on);}
+ function lvDesc(l){const s=shuffleSecs(l),z=bonusSize(l);
+-  return (s?`Shuffle every ${s}s, moving ${Math.round(Math.min(1,.4+.15*(l-2))*100)}% of blocks.`:'No shuffles.')+(l%BONUS_EVERY===0?` Bonus round (${z}×${z}) after this level.`:'');}
++  return (s?`Shuffle every ${s}s, moving ${Math.round(Math.min(1,.4+.15*(l-2))*100)}% of blocks.`:'No shuffles.')+(l%BONUS_EVERY===0?` Bonus round (${z}×${z}) after this level.`:'')+(l>=PU_FROM?' Power-ups can be found.':'');}
+ function renderDbg(){$('livesSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===DBG.lives));
++  $('puSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.v===DBG.pu));
+   $('lvVal').textContent=DBG.lv;$('lvInfo').textContent=lvDesc(DBG.lv);$('dbgLevel').textContent='PLAY LEVEL '+DBG.lv;
+   $('bonusSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.l===DBG.bonusAfter));
+   const z=bonusSize(DBG.bonusAfter);$('dbgBonus').textContent=`PLAY ${z}×${z} BONUS (${bonusTime(z)/1000}s)`;}
+@@ -863,8 +938,10 @@
+ ui('lvDown5',()=>stepLv(-5));ui('lvDown',()=>stepLv(-1));ui('lvUp',()=>stepLv(1));ui('lvUp5',()=>stepLv(5));
+ $('bonusSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.bonusAfter=+b.dataset.l;renderDbg();});
+ $('livesSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.lives=+b.dataset.v;renderDbg();});
+-ui('dbgLevel',()=>{setDebug(true);G.score=0;G.runId=Date.now();G.level=DBG.lv;G.startHearts=G.hearts=DBG.lives;startLevel(true);});
+-ui('dbgBonus',()=>{setDebug(true);G.score=0;G.runId=Date.now();G.level=DBG.bonusAfter;G.startHearts=G.hearts=DBG.lives;startBonus();});
++$('puSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.pu=+b.dataset.v;renderDbg();});
++ui('puStar',useStar);ui('puFreeze',useFreeze);
++ui('dbgLevel',()=>{setDebug(true);G.score=0;G.runId=Date.now();G.inv={star:DBG.pu,freeze:DBG.pu};G.level=DBG.lv;G.startHearts=G.hearts=DBG.lives;startLevel(true);});
++ui('dbgBonus',()=>{setDebug(true);G.score=0;G.runId=Date.now();G.inv={star:DBG.pu,freeze:DBG.pu};G.level=DBG.bonusAfter;G.startHearts=G.hearts=DBG.lives;startBonus();});
+ ui('pauseBtn',pause);ui('resumeBtn',resume);ui('restartBtn',()=>startLevel(false));ui('quitBtn',toTitle);
+ ui('retryBtn',()=>startLevel(false));ui('overQuit',toTitle);
+ ui('nextBtn',()=>{G.startHearts=Math.max(MAX_HEARTS,G.hearts);

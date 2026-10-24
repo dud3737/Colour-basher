@@ -25,6 +25,39 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.8.0 – 2026-10-22
+
+Exact diff: `versions/diffs/1.7.7-to-1.8.0.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| JS | Constants | `PU_FROM = 2 × BONUS_EVERY + 1` (7), `PU_MAX = 3`, `PU_CHANCE = 0.35`, `FREEZE_MS = 15000`. |
+| JS | `genItems()` | From `PU_FROM`, independently places hidden `'puStar'` and `'puFreeze'` items (35% each) in cells with no other item. They move with blocks on shuffle (existing item swap). |
+| JS | `smash()` | Hidden power-up → `gainPU()`. Applies to taps and COLOUR BLAST chains. |
+| JS | `gainPU(k, x, y)` | **New.** +1 up to 3 (always +100 score), pop-up text, the slot icon flies to the bar, then a bounce. |
+| JS | `puActive()`, `renderPU()` | **New.** The bar shows when not in a bonus round and level ≥ 7. Shows counts, disables empty slots (freeze also when the level has no shuffles), shows the armed state and the hint text. |
+| JS | `useStar()`, `starBlast(cell, x, y)` | **New.** First tap arms (`G.armed`); a second tap cancels. While armed, `tap()` calls `starBlast()`, which moves the chosen colour to `G.order[G.ti]` (so the old target is next), then runs `colourBlast()`. Chain scoring, `colourCleared()` and pause deferral behave as with the star block. |
+| JS | `useFreeze()` | **New.** Sets `G.freezeEnd` (game time) and `G.frozenLeft` (time left to the next shuffle, minimum 1.5 s), cancelling any active warning. Stacks by +15 s. |
+| JS | `tickShuffle()` | While frozen: holds `nextShuf = e + frozenLeft`, adds the `.frozen` style, sets the label to FROZEN, refreshes the hint each second, and skips warnings and shuffles. Frozen time is game time, so pausing pauses the freeze too. |
+| JS | `tap()` | Armed star check before the colour test. The word/combo pop-up only shows for blocks with no item. |
+| JS | State | `G.inv {star, freeze}`: reset in `newGame()`, saved per level as `G.invStart` (a restart restores it), set from `DBG.pu` for debug starts. `startLevel()` and `startBonus()` reset `armed` and the freeze. |
+| HTML/CSS | `#pus` bar | **New** row under the shuffle meter: label, `#puStar` and `#puFreeze` slot buttons with count badges, `#puHint`. Styles `.pus`, `.pu`, `.pui`, `.puhint`, `.pu.armed`, `#game.armed .board` (gold glow), `.shuf.frozen`. |
+| CSS | `#game --bw` | Board height allowance 260 → 310 px (230 → 280 on short screens) for the new row. |
+| JS | `Snd.freeze()` | **New** icy chime. |
+| HTML/JS | Debug | **New** Power-ups selector `#puSeg` (`DBG.pu`). `lvDesc()` notes "Power-ups can be found." |
+| HTML | Tips | Third line about power-ups. |
+| JS | `VERSION` | `'1.7.7'` → `'1.8.0'` |
+| Android | `app/build.gradle.kts` | `versionCode` 22 → 23, `versionName` "1.7.7" → "1.8.0". |
+
+**Tested** in a headless browser using the debug menu:
+- **Bar:** visible at level 7 with the debug-granted 3/3; hidden at level 6 and in a 7×7 bonus round.
+- **Star:** arming showed the gold board and hint, and tapping ★ again cancelled with nothing spent. Blasting a non-target colour (11 blocks) left 0 of it, kept RED as the target, cost no hearts, marked 1 chip done and used 1 star.
+- **Freeze:** shuffle warnings were 3 in 9 s normally, **0 during 14 s frozen** (label FROZEN, hint counting down from 15 s), then 2 in the next 6 s.
+- **Rollback:** after using one of each, losing all hearts and restarting, the inventory was back to 3/3.
+- **Finding:** six full level-7 runs found 4 power-ups (expected about 4.2), and they carried into level 8.
+
+---
+
 ## 1.7.7 – 2026-10-21
 
 Exact diff: `versions/diffs/1.7.6-to-1.7.7.diff`

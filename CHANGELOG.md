@@ -4,6 +4,20 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.8.0] – 2026-10-22
+
+### Added
+- **Power-ups**, from level 7 onwards (after the second bonus round). They're hidden inside blocks: bash the block to find one, and it flies into the new **POWER-UPS** bar under the grid.
+  - **★ Star power-up:** tap it, and the board glows gold with the hint "Tap any block to blast its colour". The next block you tap blasts every block of that colour, with no penalty even if it isn't the target colour. If you pick a colour other than the target, it's cleared now and the target you were on comes next. Tap ★ again to cancel without using it.
+  - **❄ Freeze power-up:** stops shuffles for 15 seconds of play time. The shuffle meter turns icy blue and reads FROZEN, and the bar shows a countdown. Using it during a shuffle warning cancels that shuffle. Using another while frozen adds 15 seconds more.
+  - **Finding them:** each level from 7 has a 35% chance of hiding a star and, separately, a 35% chance of hiding a freeze. Finding one scores +100. If a hidden power-up is moved by a shuffle, it stays hidden in the block it moved to.
+  - **Keeping them:** you can hold up to 3 of each, shown as a red count badge (greyed out at 0). They carry over between levels and through bonus rounds; the bar is hidden during bonus rounds. Restarting a level returns your power-ups to what you had at its start, just like your score. A new game starts with none.
+- Home-screen tips now mention power-ups from level 7.
+- Debug menu: **Power-ups** option (0, 1 or 3 of each) for debug starts. The level note says when power-ups can be found.
+
+### Changed
+- The board is slightly smaller on short screens, to make room for the power-ups bar. On most phones it's unchanged.
+
 ## [1.7.7] – 2026-10-21
 
 ### Changed
