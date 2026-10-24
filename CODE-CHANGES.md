@@ -25,6 +25,28 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.8.1 – 2026-10-22
+
+Exact diff: `versions/diffs/1.8.0-to-1.8.1.diff`
+
+**Cause of the always-moving star icon:** the slot icon used the class name `star`, which already belongs to the star *block* face (`.star { position: absolute; inset: 19%; animation: twinkle … infinite }`). So the icon picked up the endless twinkle, and an absolute position as well.
+
+| Area | Where | Change |
+|---|---|---|
+| HTML/CSS | Star slot icon | Class `star` → `pstar` (`.pui.pstar`), so it no longer inherits the block star's animation or positioning. |
+| CSS | `.pu:not(:disabled) .pui.pstar svg` | Twinkle only while the slot is enabled, i.e. the player holds at least one star. |
+| JS | `FREEZE_MS` | 15000 → 10000. The aria-label and comment were updated to match. |
+| JS | `VERSION` | `'1.8.0'` → `'1.8.1'` |
+| Android | `app/build.gradle.kts` | `versionCode` 23 → 24, `versionName` "1.8.0" → "1.8.1". |
+
+**Tested** in a headless browser with debug starts at level 7:
+- **0 stars:** icon animation `none`, position `static`, slot disabled.
+- **1 star:** icon animation `twinkle`.
+- **After using it:** animation `none` again.
+- **Freeze:** the hint read "Shuffles frozen – 10s", and the first shuffle warning came 10.4 s after freezing (level 7 normally warns every 4.5 s).
+
+---
+
 ## 1.8.0 – 2026-10-22
 
 Exact diff: `versions/diffs/1.7.7-to-1.8.0.diff`

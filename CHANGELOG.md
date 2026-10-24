@@ -4,6 +4,14 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.8.1] – 2026-10-22
+
+### Fixed
+- The ★ star power-up icon in the power-ups bar was always twinkling, even with none collected. It's now **still when you have none** and only twinkles once you have one.
+
+### Changed
+- The ❄ freeze power-up now stops shuffles for **10 seconds** (was 15). Using another while frozen adds 10 seconds more.
+
 ## [1.8.0] – 2026-10-22
 
 ### Added

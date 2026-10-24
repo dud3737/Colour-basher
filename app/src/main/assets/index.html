@@ -237,7 +237,8 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 .pu:active{transform:translateY(3px);box-shadow:0 1px 0 var(--edge)}
 .pu:disabled{opacity:.35;cursor:default;transform:none;box-shadow:0 4px 0 var(--edge)}
 .pui{width:100%;height:100%;border-radius:24%;display:grid;place-items:center;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
-.pui.star{background:conic-gradient(#ff3a3a,#ff8c1a,#ffd400,#2fcf4f,#2f74ff,#9a46ff,#ff5fc8,#ff3a3a)}
+.pui.pstar{background:conic-gradient(#ff3a3a,#ff8c1a,#ffd400,#2fcf4f,#2f74ff,#9a46ff,#ff5fc8,#ff3a3a)}
+.pu:not(:disabled) .pui.pstar svg{animation:twinkle 1.1s ease-in-out infinite}   /* star only twinkles once you have one */
 .pui.frz{background:linear-gradient(160deg,#d6f7ff,#38b6ff 55%,#1673c9)}
 .pui svg{width:74%;height:74%;overflow:visible}
 .pu b{position:absolute;right:-9px;top:-9px;min-width:21px;height:21px;border-radius:999px;background:#ff3a3a;color:#fff;border:2px solid var(--edge);font-family:var(--fd);font-size:11px;display:grid;place-items:center;padding:0 4px}
@@ -367,8 +368,8 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
   </div>
   <div class="shuf" id="shuf"><span>SHUFFLE</span><div class="track"><div class="fill" id="shufFill"></div></div></div>
   <div class="pus" id="pus"><span class="pul">POWER-UPS</span>
-    <button class="pu" id="puStar" aria-label="Star power-up: blast a colour of your choice"><i class="pui star"><svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.7 7.2.7-5.4 4.8 1.6 7.1L12 17.4l-6.4 3.7 1.6-7.1-5.4-4.8 7.2-.7z" fill="#fff" stroke="#1a1033" stroke-width="1.6" stroke-linejoin="round"/></svg></i><b id="puStarN">0</b></button>
-    <button class="pu" id="puFreeze" aria-label="Freeze power-up: stop shuffles for 15 seconds"><i class="pui frz"><svg viewBox="0 0 24 24"><g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v20M3.3 7l17.4 10M3.3 17l17.4-10"/><path d="M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5M3.8 10.4l3.6-.7-1.3-3.6M20.2 13.6l-3.6.7 1.3 3.6M3.8 13.6l3.6.7-1.3 3.6M20.2 10.4l-3.6-.7 1.3-3.6"/></g></svg></i><b id="puFreezeN">0</b></button>
+    <button class="pu" id="puStar" aria-label="Star power-up: blast a colour of your choice"><i class="pui pstar"><svg viewBox="0 0 24 24"><path d="M12 1.8l3 6.7 7.2.7-5.4 4.8 1.6 7.1L12 17.4l-6.4 3.7 1.6-7.1-5.4-4.8 7.2-.7z" fill="#fff" stroke="#1a1033" stroke-width="1.6" stroke-linejoin="round"/></svg></i><b id="puStarN">0</b></button>
+    <button class="pu" id="puFreeze" aria-label="Freeze power-up: stop shuffles for 10 seconds"><i class="pui frz"><svg viewBox="0 0 24 24"><g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v20M3.3 7l17.4 10M3.3 17l17.4-10"/><path d="M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5M3.8 10.4l3.6-.7-1.3-3.6M20.2 13.6l-3.6.7 1.3 3.6M3.8 13.6l3.6.7-1.3 3.6M20.2 10.4l-3.6-.7 1.3-3.6"/></g></svg></i><b id="puFreezeN">0</b></button>
     <span class="puhint" id="puHint"></span></div>
 </section>
 
@@ -467,7 +468,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='1.8.0';
+const VERSION='1.8.1';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -585,7 +586,7 @@ function genGrid(){let g;do{g=Array.from({length:N*N},()=>Math.floor(Math.random
 function genOrder(){const o=COLOURS.map((_,i)=>i);for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]];}return o;}
 /* hidden bonus life (more likely as levels rise) and a visible star power-up */
 /* power-ups (from level 7, i.e. after the 2nd bonus round): hidden in blocks, kept in the bar under the grid */
-const PU_FROM=2*BONUS_EVERY+1, PU_MAX=3, PU_CHANCE=.35, FREEZE_MS=15000;
+const PU_FROM=2*BONUS_EVERY+1, PU_MAX=3, PU_CHANCE=.35, FREEZE_MS=10000;
 function genItems(level){
   const it=Array(N*N).fill(null),spots=shuffleArr([...Array(N*N).keys()]);
   if(Math.random()<Math.min(.8,.45+.05*level))it[spots.pop()]='heart';
@@ -760,7 +761,7 @@ function starBlast(cell,x,y){   // blast the chosen colour; if it isn't the curr
   if(idx>G.ti){G.order.splice(idx,1);G.order.splice(G.ti,0,c);renderChips();updateTarget(true);}
   colourBlast(x,y,c);
 }
-function useFreeze(){   // holds the shuffle countdown for 15 s of play time; using another adds 15 s more
+function useFreeze(){   // holds the shuffle countdown for FREEZE_MS (10 s) of play time; using another adds 10 s more
   if(!puActive()||!G.inv.freeze||!G.shufMs||G.state!=='play')return;
   const e=elapsed();G.inv.freeze--;
   if(!(G.freezeEnd>e)){if(G.warned)stopWarn();G.frozenLeft=Math.max(G.nextShuf-e,1500);}
