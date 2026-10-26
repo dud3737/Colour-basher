@@ -75,6 +75,11 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 .setpanel{max-height:100%;overflow-y:auto;gap:12px}
 .setrow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16px}
 .dbg{width:100%;display:flex;flex-direction:column;gap:10px;border:3px dashed var(--ink-soft);border-radius:16px;padding:12px}
+.setrow[hidden],.dbg-note[hidden]{display:none}
+.vol{flex:1;min-width:0;max-width:200px;height:28px;accent-color:#ff5fc8;cursor:pointer;user-select:auto;-webkit-user-select:auto}
+.volv{min-width:44px;text-align:right;font-family:var(--fd);font-size:14px;font-variant-numeric:tabular-nums}
+.credits{width:100%;font-size:14px;line-height:1.6;text-align:center;border-top:3px solid var(--panel2);padding-top:10px}
+.credh{font-family:var(--fd);font-size:13px;letter-spacing:.14em;color:var(--ink-soft);margin-bottom:2px}
 .dbg-h{font-family:var(--fd);font-size:15px;letter-spacing:.08em;color:#ff8c1a}
 .dbg-note,.lvinfo{margin:0;font-size:12px;color:var(--ink-soft);line-height:1.4;text-align:left}
 .stepper{display:flex;align-items:center;gap:5px}
@@ -394,6 +399,8 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 <div class="ov" id="ovPause"><div class="panel">
   <h2 class="ov-title outline">PAUSED</h2>
   <p class="ov-sub" id="pauseInfo"></p>
+  <div class="setrow musicrow"><span>Music</span><button class="btn small blue" id="pauseMusic">ON</button></div>
+  <div class="setrow musicrow"><span>Volume</span><input type="range" class="vol" id="pauseMusicVol" min="0" max="100" step="5" aria-label="Music volume"><b class="volv" id="pauseMusicVolV">60%</b></div>
   <div class="btncol">
     <button class="btn green" id="resumeBtn">RESUME</button>
     <button class="btn yellow" id="restartBtn">RESTART LEVEL</button>
@@ -435,7 +442,10 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
 
 <div class="ov" id="ovSettings"><div class="panel setpanel">
   <h2 class="ov-title outline">SETTINGS</h2>
-  <div class="setrow"><span>Sound</span><button class="btn small blue" id="setSound">ON</button></div>
+  <div class="setrow"><span>Sound effects</span><button class="btn small blue" id="setSound">ON</button></div>
+  <div class="setrow musicrow"><span>Music</span><button class="btn small blue" id="setMusic">ON</button></div>
+  <div class="setrow musicrow"><span>Volume</span><input type="range" class="vol" id="setMusicVol" min="0" max="100" step="5" aria-label="Music volume"><b class="volv" id="setMusicVolV">60%</b></div>
+  <p class="dbg-note" id="musicNote" hidden>Music plays in the web app and Android versions.</p>
   <div class="dbglock" id="dbgLock">
     <div class="dbg-h">🔒 DEBUG · TESTING</div>
     <div class="lockrow"><input type="password" id="dbgPass" placeholder="Password" autocomplete="off" aria-label="Debug password"><button class="btn small yellow" id="dbgUnlock">UNLOCK</button></div>
@@ -452,6 +462,7 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
     <div class="setrow"><span>Bonus</span><div class="seg" id="bonusSeg"><button data-l="3">5×5</button><button data-l="6">6×6</button><button data-l="9">7×7</button></div></div>
     <button class="btn yellow" id="dbgBonus">PLAY BONUS</button>
   </div>
+  <div class="credits"><div class="credh">CREDITS</div><div><b>Jamie Duddy</b> – programming</div><div><b>Dreamback</b> – music</div></div>
   <button class="btn small purple" id="setClose">CLOSE</button>
 </div></div>
 
@@ -471,7 +482,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='1.8.2';
+const VERSION='1.9.0';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -494,13 +505,14 @@ const store={
 const Snd={
   ctx:null,muted:store.get('cb_muted',false),
   init(){
-    if(this.ctx){if(this.ctx.state==='suspended')this.ctx.resume();return;}
+    if(this.ctx){if(this.ctx.state==='suspended')this.ctx.resume();Music.kick();return;}
     try{
       const AC=window.AudioContext||window.webkitAudioContext;this.ctx=new AC();
       this.master=this.ctx.createGain();this.master.gain.value=.5;this.master.connect(this.ctx.destination);
       const len=Math.floor(this.ctx.sampleRate*.5);this.noise=this.ctx.createBuffer(1,len,this.ctx.sampleRate);
       const d=this.noise.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
     }catch(e){this.ctx=null;}
+    Music.kick();
   },
   tone(type,f0,f1,dur,vol=.3,delay=0){
     if(this.muted||!this.ctx)return;
@@ -531,6 +543,47 @@ const Snd={
   go(){this.tone('square',1320,1320,.28,.17);},
   click(){this.tone('triangle',700,1100,.06,.12);}
 };
+/* ---------- music: 4 tracks by Dreamback, shuffled, 3 s crossfades ----------
+   Files live in music/ next to the page (web app + Android). Not available inside Claude's viewer (no files there).
+   On https the tracks run through Web Audio so volume works on iPhone too; on file:// (Android app) element volume is used. */
+const Music={
+  tracks:['music/51.mp3','music/basher.mp3','music/koto.mp3','music/roswell.mp3'],FADE:3,
+  on:store.get('cb_music',true),vol:store.get('cb_musicVol',.6),
+  avail:window.top===window,graph:/^https?:$/.test(location.protocol),
+  queue:[],last:null,cur:null,players:new Set(),suspended:false,timer:null,
+  nextSrc(){if(!this.queue.length){const q=shuffleArr(this.tracks.slice());if(q[0]===this.last&&q.length>1)[q[0],q[1]]=[q[1],q[0]];this.queue=q;}
+    return this.last=this.queue.shift();},   // every track once per round, never the same one twice in a row
+  make(src){const a=new Audio(src);a.preload='auto';const p={a,lvl:0,target:0,rate:1,node:null,g:null};
+    if(this.graph&&Snd.ctx){try{p.node=Snd.ctx.createMediaElementSource(a);p.g=Snd.ctx.createGain();p.g.gain.value=0;p.node.connect(p.g);p.g.connect(this.bus());}catch(e){p.node=p.g=null;}}
+    a.addEventListener('timeupdate',()=>{if(p===this.cur&&!p.out&&a.duration&&a.duration-a.currentTime<=this.FADE)this.advance();});
+    a.addEventListener('ended',()=>{if(p===this.cur)this.advance();});
+    a.addEventListener('error',()=>{if(p===this.cur)setTimeout(()=>this.advance(),500);});
+    this.players.add(p);return p;},
+  bus(){if(!this._bus){this._bus=Snd.ctx.createGain();this._bus.gain.value=this.vol;this._bus.connect(Snd.ctx.destination);}return this._bus;},
+  apply(p){if(p.g)p.g.gain.value=p.lvl;else p.a.volume=Math.max(0,Math.min(1,p.lvl*this.vol));},
+  fade(p,to,sec,done){p.target=to;p.rate=Math.abs(to-p.lvl)/Math.max(.05,sec);p.done=done;this.tick();},
+  tick(){if(this.timer)return;const step=()=>{let busy=false;
+      for(const p of this.players){if(p.lvl!==p.target){const d=p.rate*.05;p.lvl=p.lvl<p.target?Math.min(p.target,p.lvl+d):Math.max(p.target,p.lvl-d);this.apply(p);
+        if(p.lvl===p.target&&p.done){const f=p.done;p.done=null;f();}else busy=true;}}
+      if(!busy){clearInterval(this.timer);this.timer=null;}};
+    this.timer=setInterval(step,50);},
+  drop(p){p.a.pause();try{p.node&&p.node.disconnect();p.g&&p.g.disconnect();}catch(e){}p.a.removeAttribute('src');p.a.load();this.players.delete(p);},
+  play(p,fadeSec){const r=p.a.play();if(r&&r.catch)r.catch(()=>{});this.fade(p,1,fadeSec);},
+  advance(){const old=this.cur;if(old){old.out=true;this.fade(old,0,this.FADE,()=>this.drop(old));}
+    this.cur=this.make(this.nextSrc());this.play(this.cur,old?this.FADE:1.5);},
+  kick(){   // called on every tap (browsers only allow music to start from a tap)
+    if(!this.avail||!this.on||document.hidden)return;
+    if(!this.cur){this.advance();return;}
+    if(this.suspended||this.cur.a.paused){this.suspended=false;this.play(this.cur,1);}},
+  suspend(){if(!this.cur)return;this.suspended=true;for(const p of [...this.players])if(p!==this.cur)this.drop(p);this.cur.a.pause();this.cur.lvl=0;this.cur.target=0;this.apply(this.cur);},
+  setOn(on){this.on=on;store.set('cb_music',on);if(on){this.suspended=false;this.kick();}else if(this.cur){const p=this.cur;this.fade(p,0,.6,()=>{if(!this.on)p.a.pause();});}syncMusicUI();},
+  setVol(v){this.vol=v;store.set('cb_musicVol',v);if(this._bus)this._bus.gain.value=v;for(const p of this.players)this.apply(p);syncMusicUI();}
+};
+function syncMusicUI(){const pct=Math.round(Music.vol*100)+'%';
+  for(const id of ['setMusic','pauseMusic'])$(id).textContent=Music.on?'ON':'OFF';
+  for(const id of ['setMusicVol','pauseMusicVol'])$(id).value=Math.round(Music.vol*100);
+  for(const id of ['setMusicVolV','pauseMusicVolV'])$(id).textContent=pct;
+  document.querySelectorAll('.musicrow').forEach(r=>r.hidden=!Music.avail);$('musicNote').hidden=Music.avail;}
 function buzz(ms){try{if(window.AndroidBridge&&window.AndroidBridge.vibrate)window.AndroidBridge.vibrate(ms);else if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 
 /* ---------- particle effects ---------- */
@@ -901,6 +954,8 @@ $('clearRec').addEventListener('click',()=>{
 
 /* ---------- sound toggle ---------- */
 function syncSound(){for(const id of ['soundBtn','soundBtn2'])$(id).textContent=Snd.muted?'🔇':'🔊';$('setSound').textContent=Snd.muted?'OFF':'ON';}
+for(const id of ['setMusic','pauseMusic'])$(id).addEventListener('click',()=>{Snd.init();Snd.click();Music.setOn(!Music.on);});
+for(const id of ['setMusicVol','pauseMusicVol'])$(id).addEventListener('input',e=>Music.setVol(+e.target.value/100));
 for(const id of ['soundBtn','soundBtn2','setSound'])$(id).addEventListener('click',()=>{Snd.muted=!Snd.muted;store.set('cb_muted',Snd.muted);syncSound();Snd.init();Snd.click();});
 
 /* ---------- wiring ---------- */
@@ -1005,11 +1060,11 @@ window.cbBack=function(){
   }
   return false;
 };
-window.cbPause=function(){if(screen==='game')pause();};
+window.cbPause=function(){if(screen==='game')pause();Music.suspend();};   // app/tab hidden: pause the game and the music (music resumes on the next tap)
 document.addEventListener('visibilitychange',()=>{if(document.hidden)window.cbPause();});
 window.addEventListener('resize',()=>FX.resize());
 
-FX.resize();buildTitle();syncSound();updateBest();$('ver').textContent='v'+VERSION;
+FX.resize();buildTitle();syncSound();syncMusicUI();updateBest();$('ver').textContent='v'+VERSION;
 /* web app: offline support + ask the browser to keep records safe (skipped inside the Android app and Claude's viewer) */
 if(WEBAPP&&'serviceWorker' in navigator&&(location.protocol==='https:'||/^(localhost|127\.0\.0\.1)$/.test(location.hostname))){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();}catch(e){}});

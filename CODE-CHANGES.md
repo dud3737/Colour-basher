@@ -25,6 +25,39 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.9.0 – 2026-10-26
+
+Exact diff (game file): `versions/diffs/1.8.2-to-1.9.0.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| Assets | `app/src/main/assets/music/` | **New.** `51.mp3`, `basher.mp3`, `koto.mp3` and `roswell.mp3`, re-encoded from the supplied 320 kbps files to 128 kbps CBR, 44.1 kHz stereo, metadata stripped (23 MB → 8.8 MB). Lengths: 1:37, 2:32, 2:45 and 2:42. This is the single source; `tools/build_web.py` copies it to `web/music/`. |
+| JS | `Music` | **New** player. Shuffled queue (each track once per round, no back-to-back repeat). Two `<audio>` players overlap for a 3 s crossfade, triggered by `timeupdate` when 3 s remain, with `ended` and `error` as fallbacks. Fades run on a 50 ms ticker over per-player levels. On http(s) each player goes through `createMediaElementSource → GainNode → music bus GainNode`, because iOS ignores `audio.volume`. On `file://` (Android WebView) it uses `audio.volume = level × volume`. Methods: `kick()` (start or resume, called from `Snd.init()` on every tap, since autoplay needs a gesture), `suspend()`, `setOn()` and `setVol()`. Settings are saved in `localStorage` as `cb_music` (default on) and `cb_musicVol` (default 0.6). `avail` is false inside an iframe (Claude's viewer), where the files don't exist. |
+| JS | `Snd.init()` | Calls `Music.kick()`. |
+| JS | `window.cbPause` / `visibilitychange` | Also `Music.suspend()`; the next tap resumes. |
+| JS | `syncMusicUI()` | **New.** Syncs the Pause and Settings controls. Hides the `.musicrow` rows and shows `#musicNote` when music isn't available. |
+| HTML | Pause overlay | Music ON/OFF `#pauseMusic`, volume `#pauseMusicVol` / `#pauseMusicVolV`. |
+| HTML | Settings | "Sound" → "Sound effects". Music ON/OFF `#setMusic`, volume `#setMusicVol` / `#setMusicVolV`, `#musicNote`, and a credits block. |
+| CSS | `.vol`, `.volv`, `.credits`, `.credh`, `[hidden]` rules | Slider (pink accent), percentage label, credits styling. |
+| Web | `sw.js` (via `build_web.py`) | Requests under `/music/` bypass the service worker. Audio uses range requests, which return 206 responses the cache can't store; music needs a connection. |
+| Tools | `tools/build_web.py` | Copies `assets/music` → `web/music`. |
+| Tools | `tools/deploy_github.py` | Deploys sub-folders too (recursive file list and remote tree). |
+| JS | `VERSION` | `'1.8.2'` → `'1.9.0'` |
+| Android | `app/build.gradle.kts` | `versionCode` 25 → 26, `versionName` "1.8.2" → "1.9.0". |
+
+**Tested** in a headless browser:
+- **Test clips:** a copy of the site with 9-second versions of the tracks, run both as `file://` (Android-style, element volume) and over http (web-style, Web Audio).
+- **No autoplay:** no audio before the first tap. After New Game, a track faded in to 0.6.
+- **Crossfade:** 6 half-second samples showed two tracks playing at once with volumes crossing (e.g. 0.28 / 0.32).
+- **Shuffle:** all 4 tracks played once per round in a random order, on both paths.
+- **Controls:** the volume slider at 20% set the element volume to 0.2. Music OFF faded out then paused; ON resumed at the chosen volume.
+- **Hidden app:** simulating the app being hidden paused both the game and the music, and the next tap resumed.
+- **Full-length track (http):** played with duration 164.9 s, and the slider at 30% set a Web Audio gain to 0.3. Settings matched the pause controls.
+- **Claude-style iframe:** music rows hidden, the note shown, credits visible, and no music requested.
+- **No page errors** throughout.
+
+---
+
 ## 1.8.2 – 2026-10-22
 
 Exact diff: `versions/diffs/1.8.1-to-1.8.2.diff`

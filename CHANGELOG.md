@@ -4,6 +4,24 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.9.0] – 2026-10-26
+
+### Added
+- **Music** by Dreamback: four tracks (*51*, *Basher*, *Koto* and *Roswell*).
+  - The tracks play in a random order. Each one plays once before any repeats, and the same track never plays twice in a row.
+  - Songs **crossfade** over 3 seconds, and the first song fades in.
+  - Music starts with your first tap (phones don't allow sound before you interact), keeps playing on every screen, and pauses when you switch away from the game. It resumes on your next tap.
+- **Music controls** in both **Pause** and **Settings**: a Music ON/OFF switch and a **volume slider** (0–100%, default 60%). The two screens stay in sync and the choice is remembered. Turning music off fades it out.
+- **Credits** in Settings: *Jamie Duddy – programming*, *Dreamback – music*.
+
+### Changed
+- The Settings "Sound" switch is now labelled **Sound effects**, since music has its own switch. The 🔊 buttons still control sound effects only.
+- The music files are compressed to 128 kbps, about 9 MB for all four, so they load quickly on mobile data.
+
+### Notes
+- Music plays in the web app and the Android app. The Claude-hosted copy can't hold the music files, so it hides the music controls and says so in Settings.
+- Music needs an internet connection; the rest of the game still works offline.
+
 ## [1.8.2] – 2026-10-22
 
 ### Added

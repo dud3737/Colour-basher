@@ -2,7 +2,7 @@
 Usage: python3 tools/build_web.py   (run from the project root after each release)
 - copies app/src/main/assets/index.html to web/index.html and adds the web-app <head> tags
 - writes manifest.webmanifest and sw.js, stamping the game's VERSION into the offline cache name"""
-import json, pathlib, re
+import json, pathlib, re, shutil
 root=pathlib.Path(__file__).resolve().parent.parent
 src=(root/'app/src/main/assets/index.html').read_text(encoding='utf-8')
 version=re.search(r"const VERSION='([\d.]+)'",src).group(1)
@@ -18,6 +18,9 @@ head_tags='''<link rel="manifest" href="manifest.webmanifest">
 assert '<title>Colour Basher</title>' in src
 web=src.replace('<title>Colour Basher</title>','<title>Colour Basher</title>\n'+head_tags,1)
 (root/'web/index.html').write_text(web,encoding='utf-8')
+# music: copied from the Android assets (single source of truth)
+if (root/'app/src/main/assets/music').is_dir():
+    shutil.copytree(root/'app/src/main/assets/music', root/'web/music', dirs_exist_ok=True)
 manifest={
  "name":"Colour Basher","short_name":"Colour Basher","id":"./","start_url":"./","scope":"./",
  "display":"fullscreen","display_override":["fullscreen","standalone"],"orientation":"portrait",
@@ -35,7 +38,7 @@ self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.add
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('colour-basher-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())
   .then(()=>self.clients.matchAll({type:'window'})).then(cs=>cs.forEach(c=>c.postMessage({type:'cb-version',v:VERSION}))));});   // pages older than this version refresh themselves
 self.addEventListener('fetch',e=>{
-  const r=e.request;if(r.method!=='GET')return;
+  const r=e.request;if(r.method!=='GET'||new URL(r.url).pathname.includes('/music/'))return;   // music streams straight from the network (range requests can't be cached)
   if(r.mode==='navigate'){   // the game page: always re-checked with the server (bypasses the 10-min browser cache), cached copy when offline
     e.respondWith(fetch(r.url,{cache:'no-cache',credentials:'same-origin'}).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put('index.html',copy));return res;})
       .catch(()=>caches.match('index.html')));return;}

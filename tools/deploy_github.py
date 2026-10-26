@@ -15,10 +15,10 @@ def call(method, url, body=None):
 def git_sha(data): return hashlib.sha1(b'blob %d\0' % len(data) + data).hexdigest()
 web = root / 'web'
 version = re.search(r"const VERSION='([\d.]+)'", (web / 'index.html').read_text(encoding='utf-8')).group(1)
-local = {p.name: p.read_bytes() for p in sorted(web.iterdir()) if p.is_file()}
+local = {p.relative_to(web).as_posix(): p.read_bytes() for p in sorted(web.rglob('*')) if p.is_file()}   # includes music/
 head = call('GET', f'/git/ref/heads/{BRANCH}')['object']['sha']
 base_tree = call('GET', f'/git/commits/{head}')['tree']['sha']
-remote = {e['path']: e['sha'] for e in call('GET', f'/git/trees/{base_tree}')['tree'] if e['type'] == 'blob'}
+remote = {e['path']: e['sha'] for e in call('GET', f'/git/trees/{base_tree}?recursive=1')['tree'] if e['type'] == 'blob'}
 changed = [n for n, d in local.items() if remote.get(n) != git_sha(d)]
 print(f'v{version}: {len(changed)} changed file(s):', ', '.join(changed) or 'none')
 if not changed or '--dry-run' in sys.argv: sys.exit(0)
