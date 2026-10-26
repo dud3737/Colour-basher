@@ -25,6 +25,28 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 2.0.0 – 2026-10-26 (BETA)
+
+Exact diff: `versions/diffs/1.9.1-to-2.0.0.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `buildTitle()` | The subtitle is now in a `.kanarow` with a `.beta` badge beside it. Putting it inline, rather than over the logo, avoids clashing with the 🔊 button on short screens. |
+| CSS | `.kanarow`, `.beta`, `@keyframes betabob` | Pink tilted BETA sticker with a gentle bob. |
+| HTML | Home menu | **New** `<a id="supportBtn" class="btn pink support" href="https://ko-fi.com/dreamback37" target="_blank" rel="noopener noreferrer">` with the game's heart icon (white). |
+| CSS | `a.btn`, `.btn.support` | Lets a link use the button style (flex-centred, no underline); support button slightly smaller. |
+| JS | `MOTIVATION` | +5 messages (13 in total). |
+| Android | `MainActivity.java` | `shouldOverrideUrlLoading`: http(s) links now open in the phone's browser via `Intent.ACTION_VIEW`, and the WebView still never navigates away. Previously every link was blocked. |
+| JS | `VERSION` | `'1.9.1'` → `'2.0.0'` |
+| Android | `app/build.gradle.kts` | `versionCode` 27 → 28, `versionName` "1.9.1" → "2.0.0-beta". |
+
+**Tested** in a headless browser:
+- **Home screen:** at 390×780 and a small 360×640, the BETA badge was visible and the logo, menu and version label all fitted on screen without overlapping. A first attempt that placed the badge on the logo collided with the 🔊 button on the small screen, so it was moved beside the subtitle.
+- **Support link:** points to https://ko-fi.com/dreamback37 with `target="_blank"` and `rel="noopener noreferrer"`. Tapping it opened a new tab and left the game tab in place. The test environment can't reach Ko-fi itself, so the page didn't load there.
+- **Messages:** 200 Motivation rolls showed all 13 messages, including all 5 new ones.
+
+---
+
 ## Hosting – 2026-10-26 (no new game version)
 
 | Area | Where | Change |

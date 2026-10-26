@@ -4,6 +4,20 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.0.0] – 2026-10-26 – BETA 🎉
+
+Colour Basher 2.0 opens the public **beta**, live at www.colourbasher.co.uk.
+
+### Added
+- A **BETA** badge on the home screen, next to the カラーバッシャー subtitle.
+- A pink **♥ SUPPORT ME** button on the home screen, under Records. It opens Dreamback's Ko-fi page (ko-fi.com/dreamback37) in a new tab, so the game stays open. In the Android app it opens in the phone's browser.
+- Five new Motivation messages:
+  - Show the world who you are
+  - Find the dream, chase the star
+  - Every fire comes from just a spark
+  - Stars that shine, shine in you
+  - Nobody is bashing blocks better than you right now
+
 ## [1.9.1] – 2026-10-26
 
 ### Changed

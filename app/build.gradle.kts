@@ -10,8 +10,8 @@ android {
         applicationId = "com.colourbasher.game"
         minSdk = 26            // Android 8.0+
         targetSdk = 37         // Android 17
-        versionCode = 27
-        versionName = "1.9.1"
+        versionCode = 28
+        versionName = "2.0.0-beta"
     }
 
     buildTypes {

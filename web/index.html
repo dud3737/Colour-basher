@@ -76,6 +76,14 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
   animation:bob 1.8s ease-in-out infinite;animation-delay:calc(var(--i) * -0.13s)}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(2deg)}}
 .kana{margin-top:14px;font-family:var(--fu);font-size:16px;letter-spacing:.3em;padding:6px 14px 6px 18px;border-radius:999px;background:var(--edge);color:#ffd400}
+.kanarow{display:flex;align-items:center;gap:10px;margin-top:14px}
+.kanarow .kana{margin-top:0}
+.beta{position:relative;font-family:var(--fd);font-size:min(4.6vw,20px);letter-spacing:.08em;color:#fff;background:#ff3a8a;border:3px solid var(--edge);border-radius:10px;padding:2px 10px;box-shadow:0 4px 0 var(--edge);transform:rotate(12deg);animation:betabob 2.4s ease-in-out infinite}
+@keyframes betabob{50%{transform:rotate(6deg) scale(1.08)}}
+a.btn{display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;box-sizing:border-box}
+.btn.support{font-size:18px;padding:10px 22px}
+.btn.support svg{width:24px;height:24px;flex:none}
+.btn.support svg path.f{fill:#fff;stroke:#a3166b;stroke-width:2.2}
 .menu{position:relative;display:flex;flex-direction:column;gap:16px;align-items:center}
 .best{position:relative;font-size:15px;color:var(--ink);background:var(--panel);border:3px solid var(--edge);border-radius:999px;padding:6px 16px;box-shadow:0 4px 0 var(--edge)}
 .best:empty{display:none}
@@ -355,6 +363,7 @@ button:focus-visible{outline:3px solid #ffd400;outline-offset:3px}
   <div class="menu">
     <button class="btn red" id="newBtn">NEW GAME</button>
     <button class="btn blue" id="recBtn">RECORDS</button>
+    <a class="btn pink support" id="supportBtn" href="https://ko-fi.com/dreamback37" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 32 30" aria-hidden="true"><path class="f" d="M16 27.5S3 19.6 3 10.6A6.6 6.6 0 0 1 16 7.4a6.6 6.6 0 0 1 13 3.2C29 19.6 16 27.5 16 27.5z"/></svg>SUPPORT ME</a>
     <div class="best" id="bestLbl"></div>
     <div class="tips"><b>★ Star block</b> – bash it to blast every block of its colour<br><i>♥</i> Some blocks hide a bonus life<br><b style="color:#38b6ff">❄ From level 7</b> – find power-ups, then tap them under the grid</div>
   </div>
@@ -491,7 +500,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='1.9.1';
+const VERSION='2.0.0';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -636,7 +645,7 @@ const FX={
 /* ---------- title decoration ---------- */
 function buildTitle(){
   const words=['COLOUR','BASHER'];let i=0;
-  $('logo').innerHTML=words.map(w=>'<div class="row">'+[...w].map(ch=>{const c=COLOURS[i%7];return `<span style="--c:${c.c};--i:${i++}">${ch}</span>`;}).join('')+'</div>').join('')+'<div class="kana">カラーバッシャー</div>';
+  $('logo').innerHTML=words.map(w=>'<div class="row">'+[...w].map(ch=>{const c=COLOURS[i%7];return `<span style="--c:${c.c};--i:${i++}">${ch}</span>`;}).join('')+'</div>').join('')+'<div class="kanarow"><div class="kana">カラーバッシャー</div><div class="beta">BETA</div></div>';
   let f='';for(let k=0;k<14;k++){const c=pick(COLOURS);
     f+=`<div class="fall" style="--c:${c.c};--l:${c.l};--d:${c.d};--s:${Math.round(rnd(26,62))}px;left:${rnd(-5,95).toFixed(1)}%;--t:${rnd(7,14).toFixed(1)}s;--dl:${(-rnd(0,14)).toFixed(1)}s;--rot:${Math.round(rnd(-200,200))}deg"></div>`;}
   $('falls').innerHTML=f;
@@ -1017,7 +1026,8 @@ ui('nextBtn',()=>{G.startHearts=Math.max(MAX_HEARTS,G.hearts);
   else{G.level++;startLevel(true);}});ui('winQuit',toTitle);
 
 /* ---------- motivation (level win screen) ---------- */
-const MOTIVATION=['You are the greatest!','You are the best!','There is no stopping you!','Bash those blocks!','Life is a highway!','Intensity. Integrity. Intelligence!','🔥🔥 You are 🔥🔥','The power is in your hands⚡'];
+const MOTIVATION=['You are the greatest!','You are the best!','There is no stopping you!','Bash those blocks!','Life is a highway!','Intensity. Integrity. Intelligence!','🔥🔥 You are 🔥🔥','The power is in your hands⚡',
+  'Show the world who you are','Find the dream, chase the star','Every fire comes from just a spark','Stars that shine, shine in you','Nobody is bashing blocks better than you right now'];
 let lastMotiv=-1;
 function showMotivation(){let i;do{i=Math.floor(Math.random()*MOTIVATION.length);}while(i===lastMotiv);lastMotiv=i;   // never the same message twice in a row
   $('motivMsg').innerHTML=MOTIVATION[i].split(' ').map((w,k)=>`<span style="--i:${k};color:${COLOURS[(k+i)%COLOURS.length].c}">${w.replace('⚡','<b class="zap">⚡</b>')}</span>`).join(' ');G.zapUsed=false;
