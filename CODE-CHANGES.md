@@ -25,6 +25,25 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 1.9.1 – 2026-10-26
+
+Exact diff: `versions/diffs/1.9.0-to-1.9.1.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `Music.vol` default | `store.get('cb_musicVol', .6)` → `.25`. A stored `cb_musicVol` still wins. Placeholder labels changed from 60% to 25%. |
+| HTML | Pause overlay | Removed the `#soundBtn2` icon button. Added a "Sound effects" row (`#pauseSound`, ON/OFF) after the volume row and before `#resumeBtn`. |
+| JS | `syncSound()` + sound listeners | The home 🔊 (`#soundBtn`) shows the emoji; `#setSound` and `#pauseSound` show ON/OFF. All three toggle the same `Snd.muted` / `cb_muted`. |
+| JS | `VERSION` | `'1.9.0'` → `'1.9.1'` |
+| Android | `app/build.gradle.kts` | `versionCode` 26 → 27, `versionName` "1.9.0" → "1.9.1". |
+
+**Tested** in a headless browser:
+- **Fresh player:** Settings showed 25%, and the music bus gain was 0.25 once playing.
+- **Pause panel order:** title, info, Music, Volume, Sound effects, Resume.
+- **Sound effects toggle in Pause:** pause showed OFF, Settings showed OFF, the home icon showed 🔇, and `cb_muted` was saved as true.
+
+---
+
 ## 1.9.0 – 2026-10-26
 
 Exact diff (game file): `versions/diffs/1.8.2-to-1.9.0.diff`

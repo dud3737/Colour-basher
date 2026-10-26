@@ -4,6 +4,12 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [1.9.1] – 2026-10-26
+
+### Changed
+- Music volume now **defaults to 25%** (was 60%). Anyone who has already moved the volume slider keeps their own setting.
+- **Pause menu:** the sound-effects control is now a **Sound effects ON/OFF** row directly under Music and Volume, above Resume and Restart Level. It replaces the 🔊 icon at the bottom. It stays in sync with Settings and the home-screen 🔊 button.
+
 ## [1.9.0] – 2026-10-26
 
 ### Added
