@@ -25,6 +25,29 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 2.0.1 – 2026-10-26 (BETA)
+
+Exact diff: `versions/diffs/2.0.0-to-2.0.1.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `Music.allowed` | **New** flag: false until the first game starts. `kick()` (called on every tap) only starts music once it's allowed; it still resumes music that was suspended. |
+| JS | `Music.prime()` | **New.** Called from the New Game tap and the debug PLAY LEVEL / PLAY BONUS taps. Sets `allowed`, then, if music is on and nothing is playing, creates the first track and calls `play()` at level 0 inside the tap, which satisfies the browsers' autoplay rules. Sets `primed`. |
+| JS | `Music.go()` | **New.** Called by `countdown()` when "3" appears (`INTRO_MS + 100` after the tap). If primed, fades the track in over 1.5 s. |
+| JS | `Music.play()` | Fades to 0 instead of 1 while primed, so a track change during priming stays silent. |
+| JS | `Music.make()` | Calls `apply(p)` straight away, so every new player starts at level 0. Previously, on the `file://` path (Android), `audio.volume` defaulted to 1 until the first fade tick. |
+| JS | `VERSION` | `'2.0.0'` → `'2.0.1'` |
+| Android | `app/build.gradle.kts` | `versionCode` 28 → 29, `versionName` "2.0.0-beta" → "2.0.1-beta". |
+
+**Tested** in a headless browser on the `file://` path, with a frame-by-frame probe:
+- **Home-screen taps:** opening Settings, toggling Music, opening Records and tapping 🔊 created **0** audio players.
+- **New Game:** created one track playing at volume 0.
+- **Timeline:** "3" at 2.25 s, the fade starting at 2.30 s and reaching 0.24 (of the 25% default) by 3.70 s, then GO at 4.20 s.
+- **Afterwards:** quitting to the home screen kept the music playing; a second New Game didn't restart it.
+- **Regression check (9 s test clips):** crossfades, shuffle order with no back-to-back repeat, the volume slider, ON/OFF, and pausing when hidden with resume on the next tap all still worked.
+
+---
+
 ## 2.0.0 – 2026-10-26 (BETA)
 
 Exact diff: `versions/diffs/1.9.1-to-2.0.0.diff`

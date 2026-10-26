@@ -500,7 +500,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='2.0.0';
+const VERSION='2.0.1';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -576,7 +576,7 @@ const Music={
     a.addEventListener('timeupdate',()=>{if(p===this.cur&&!p.out&&a.duration&&a.duration-a.currentTime<=this.FADE)this.advance();});
     a.addEventListener('ended',()=>{if(p===this.cur)this.advance();});
     a.addEventListener('error',()=>{if(p===this.cur)setTimeout(()=>this.advance(),500);});
-    this.players.add(p);return p;},
+    this.players.add(p);this.apply(p);return p;},   // start silent (level 0) on every path
   bus(){if(!this._bus){this._bus=Snd.ctx.createGain();this._bus.gain.value=this.vol;this._bus.connect(Snd.ctx.destination);}return this._bus;},
   apply(p){if(p.g)p.g.gain.value=p.lvl;else p.a.volume=Math.max(0,Math.min(1,p.lvl*this.vol));},
   fade(p,to,sec,done){p.target=to;p.rate=Math.abs(to-p.lvl)/Math.max(.05,sec);p.done=done;this.tick();},
@@ -586,13 +586,18 @@ const Music={
       if(!busy){clearInterval(this.timer);this.timer=null;}};
     this.timer=setInterval(step,50);},
   drop(p){p.a.pause();try{p.node&&p.node.disconnect();p.g&&p.g.disconnect();}catch(e){}p.a.removeAttribute('src');p.a.load();this.players.delete(p);},
-  play(p,fadeSec){const r=p.a.play();if(r&&r.catch)r.catch(()=>{});this.fade(p,1,fadeSec);},
+  play(p,fadeSec){const r=p.a.play();if(r&&r.catch)r.catch(()=>{});this.fade(p,this.primed?0:1,fadeSec);},   // stays silent while primed (waiting for the countdown)
   advance(){const old=this.cur;if(old){old.out=true;this.fade(old,0,this.FADE,()=>this.drop(old));}
     this.cur=this.make(this.nextSrc());this.play(this.cur,old?this.FADE:1.5);},
   kick(){   // called on every tap (browsers only allow music to start from a tap)
     if(!this.avail||!this.on||document.hidden)return;
-    if(!this.cur){this.advance();return;}
+    if(!this.cur){if(this.allowed)this.advance();return;}   // before the first game starts, taps don't start music
     if(this.suspended||this.cur.a.paused){this.suspended=false;this.play(this.cur,1);}},
+  /* first music of the session: primed silently on the New Game tap (browsers only allow audio to start from a tap),
+     then faded in when the level-1 countdown shows "3" */
+  prime(){this.allowed=true;if(!this.avail||!this.on||this.cur||document.hidden)return;
+    this.cur=this.make(this.nextSrc());const r=this.cur.a.play();if(r&&r.catch)r.catch(()=>{});this.primed=true;},
+  go(){if(!this.primed||!this.cur)return;this.primed=false;this.fade(this.cur,1,1.5);},
   suspend(){if(!this.cur)return;this.suspended=true;for(const p of [...this.players])if(p!==this.cur)this.drop(p);this.cur.a.pause();this.cur.lvl=0;this.cur.target=0;this.apply(this.cur);},
   setOn(on){this.on=on;store.set('cb_music',on);if(on){this.suspended=false;this.kick();}else if(this.cur){const p=this.cur;this.fade(p,0,.6,()=>{if(!this.on)p.a.pause();});}syncMusicUI();},
   setVol(v){this.vol=v;store.set('cb_musicVol',v);if(this._bus)this._bus.gain.value=v;for(const p of this.players)this.apply(p);syncMusicUI();}
@@ -688,7 +693,7 @@ function syncTrap(){if(!WEBAPP)return;const need=screen!=='title'||$('ovSettings
 if(WEBAPP)window.addEventListener('popstate',()=>{if(BT.skip){BT.skip=false;return;}BT.trapped=false;if(window.cbBack)window.cbBack();syncTrap();});
 function clearTimers(){G.cd.forEach(clearTimeout);G.cd=[];}
 
-function newGame(){setDebug(false);G.score=0;G.runId=Date.now();G.inv={star:0,freeze:0};G.level=1;G.startHearts=MAX_HEARTS;startLevel(true);}
+function newGame(){setDebug(false);G.score=0;G.runId=Date.now();G.inv={star:0,freeze:0};G.level=1;G.startHearts=MAX_HEARTS;Music.prime();startLevel(true);}
 function startLevel(fresh){
   clearTimers();setMode(false);G.size=N;
   G.score=G.score||0;if(fresh)G.levelStartScore=G.score;else G.score=G.levelStartScore;   // a restart rolls the score back to the start of the level
@@ -764,7 +769,7 @@ function countdown(){
   showBanner(G.bonus?`<span class="outline hold" style="--hold:${INTRO_MS}ms;color:#ffd400">BONUS!<small style="color:#fff">BASH ALL ${G.size*G.size} IN ${G.bonusMs/1000}s</small></span>`:`<span class="outline hold" style="--hold:${INTRO_MS}ms">LEVEL ${G.level}<small style="color:#ffd400">${G.shufMs?'SHUFFLE EVERY '+(G.shufMs/1000)+'s':'CLEAR THE GRID'}</small></span>`,INTRO_MS,'intro');
   ['3','2','1','GO!'].forEach((s,i)=>G.cd.push(setTimeout(()=>{
     $('count').innerHTML=`<span class="outline${i===3?' go':''}">${s}</span>`;
-    if(i<3)Snd.tick();else{Snd.go();begin();}
+    if(i<3){Snd.tick();if(i===0)Music.go();}else{Snd.go();begin();}
   },INTRO_MS+100+i*650)));
   G.cd.push(setTimeout(()=>{$('count').innerHTML='';},INTRO_MS+100+4*650));
 }
@@ -1017,8 +1022,8 @@ $('bonusSeg').addEventListener('click',e=>{const b=e.target.closest('button');if
 $('livesSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.lives=+b.dataset.v;renderDbg();});
 $('puSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;Snd.init();Snd.click();DBG.pu=+b.dataset.v;renderDbg();});
 ui('puStar',useStar);ui('puFreeze',useFreeze);
-ui('dbgLevel',()=>{setDebug(true);G.score=0;G.runId=Date.now();G.inv={star:DBG.pu,freeze:DBG.pu};G.level=DBG.lv;G.startHearts=G.hearts=DBG.lives;startLevel(true);});
-ui('dbgBonus',()=>{setDebug(true);G.score=0;G.runId=Date.now();G.inv={star:DBG.pu,freeze:DBG.pu};G.level=DBG.bonusAfter;G.startHearts=G.hearts=DBG.lives;startBonus();});
+ui('dbgLevel',()=>{setDebug(true);G.score=0;G.runId=Date.now();G.inv={star:DBG.pu,freeze:DBG.pu};G.level=DBG.lv;G.startHearts=G.hearts=DBG.lives;Music.prime();startLevel(true);});
+ui('dbgBonus',()=>{setDebug(true);G.score=0;G.runId=Date.now();G.inv={star:DBG.pu,freeze:DBG.pu};G.level=DBG.bonusAfter;G.startHearts=G.hearts=DBG.lives;Music.prime();startBonus();});
 ui('pauseBtn',pause);ui('resumeBtn',resume);ui('restartBtn',()=>startLevel(false));ui('quitBtn',toTitle);
 ui('retryBtn',()=>startLevel(false));ui('overQuit',toTitle);
 ui('nextBtn',()=>{G.startHearts=Math.max(MAX_HEARTS,G.hearts);

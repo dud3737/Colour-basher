@@ -4,6 +4,15 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.0.1] – 2026-10-26 – BETA
+
+### Changed
+- **Music now starts with the level 1 countdown.** Taps on the home screen (Settings, Records, the sound buttons) no longer start the music. It fades in as the countdown's "3" appears, after you tap New Game (or start a debug level or bonus round).
+- Once started, music carries on as before: between levels, through bonus rounds and back on the home screen. A second New Game doesn't restart it.
+
+### Fixed
+- On the Android app, a new track could briefly start at full volume for a split second before fading in. Tracks now always start silent.
+
 ## [2.0.0] – 2026-10-26 – BETA 🎉
 
 Colour Basher 2.0 opens the public **beta**, live at www.colourbasher.co.uk.
