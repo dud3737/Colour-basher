@@ -4,6 +4,12 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.0.2] – 2026-10-26 – BETA
+
+### Fixed
+- **iPhone: all sound stopping at the end of a track.** When one song finished, the music, and sometimes the sound effects, went quiet for a few seconds before carrying on. The next song now crossfades in properly on iPhone, and if iOS interrupts the game's sound, the game restarts it straight away.
+- Turning music **off** right before a song change could start the next song anyway. Songs now only change while music is on.
+
 ## [2.0.1] – 2026-10-26 – BETA
 
 ### Changed

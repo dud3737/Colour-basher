@@ -25,6 +25,34 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 2.0.2 – 2026-10-26 (BETA)
+
+Exact diff: `versions/diffs/2.0.1-to-2.0.2.diff`
+
+**Cause (iPhone):** WebKit only lets an `<audio>` element start playing if that element was first played during a tap. Up to 2.0.1, every track change created a brand-new `Audio` element from a timer (`timeupdate`), not a tap. iOS refused to play it, so the music stopped until the next tap restarted it. Tearing down the old element (`removeAttribute('src')` + `load()`) while a new one was blocked could also interrupt the shared audio session, which is likely why sound effects dropped out briefly too.
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `Music` (rewritten player) | **Two persistent decks** (`Music.decks`), created once in `setup()` and wired through Web Audio once. Track changes swap which deck plays, and the faded-out deck is paused and reloaded with the track after next. No elements are created or destroyed after start-up. |
+| JS | `Music.ensure()` | **New**, runs inside every tap (`kick` / `prime`). Creates the decks, gives each a track, and **unlocks** the idle deck by calling `play()` during the tap, then pausing it. Later timer-driven track changes are then allowed on iOS. |
+| JS | `Music.setup()` | Adds an `AudioContext` `statechange` watcher: if the engine leaves "running" while the page is visible (an iOS interruption), it calls `resume()`. |
+| JS | `timeupdate` / `ended` handlers | Only change tracks while music is on. If a track ends while music is off, it's paused and a fresh track is loaded for later. |
+| JS | `Music.suspend()`, `setVol()`, `tick()` | Work on the decks. Suspend pauses both decks and resets a deck that was fading out. |
+| JS | `VERSION` | `'2.0.1'` → `'2.0.2'` |
+| Android | `app/build.gradle.kts` | `versionCode` 29 → 30, `versionName` "2.0.1-beta" → "2.0.2-beta". |
+
+**Tested** in a headless browser with 9-second test clips (a track change every ~6 s):
+- **iPhone rule simulated:** `play()` rejects for any element not first played inside a tap.
+  - **2.0.1:** the first track change was blocked and music was **silent for 26 of 36** half-second samples, reproducing the bug.
+  - **2.0.2:** **0 blocked, 0 silent** over 18 s, with all four tracks crossfading in turn and only 2 audio elements ever created.
+- **Web Audio path** (http, as on the live site) with the iPhone rule: still playing after 16 s, nothing blocked.
+- **Music OFF/ON** pressed at 3 s, 5 s and mid-crossfade (6.5 s): everything went quiet (a crossfade finished its fade-out first), no track change happened while off, and ON was audible for 8 s in all three cases.
+- **Regression:** crossfades, the volume slider, and pause-on-hide with resume on tap all still worked.
+
+Real iPhone confirmation is still needed: the simulation reproduces WebKit's play rule, but not the audio-session behaviour.
+
+---
+
 ## 2.0.1 – 2026-10-26 (BETA)
 
 Exact diff: `versions/diffs/2.0.0-to-2.0.1.diff`
