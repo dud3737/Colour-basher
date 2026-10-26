@@ -1,7 +1,7 @@
 """Pushes the web app (web/) to GitHub Pages as ONE commit, uploading only files that changed.
 Usage:  GITHUB_TOKEN=... python3 tools/deploy_github.py [--dry-run]
 The token is read from the environment only - never commit it to the project.
-Repo: dud3737/Colour-basher (branch main) -> https://dud3737.github.io/Colour-basher/"""
+Repo: dud3737/Colour-basher (branch main) -> https://www.colourbasher.co.uk/ (custom domain via web/CNAME)"""
 import base64, hashlib, json, os, pathlib, re, sys, time, urllib.request
 OWNER, REPO, BRANCH = 'dud3737', 'Colour-basher', 'main'
 API = f'https://api.github.com/repos/{OWNER}/{REPO}'

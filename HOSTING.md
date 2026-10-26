@@ -15,7 +15,14 @@ Upload **all** these files together, at the top level of the site. Any host work
 
 ## Live site
 
-The game is hosted on GitHub Pages at **https://dud3737.github.io/Colour-basher/** (repository `dud3737/Colour-basher`, branch `main`). New builds are pushed with `tools/deploy_github.py`, using a fine-grained token limited to that repository. The whole project (changelog, code-changes, version snapshots and diffs, Android project, tools) is backed up after every build to the **`backup` branch**: https://github.com/dud3737/Colour-basher/tree/backup. On GitHub, switch the branch selector from `main` to `backup` to browse it. Revoke the token at https://github.com/settings/personal-access-tokens when it's no longer needed.
+The game is hosted on GitHub Pages at **https://www.colourbasher.co.uk/** (repository `dud3737/Colour-basher`, branch `main`). The old address, https://dud3737.github.io/Colour-basher/, and the bare domain colourbasher.co.uk both redirect there.
+
+**Custom domain set-up (Oct 2026):**
+- DNS: `www` CNAME → `dud3737.github.io`; `@` A records → 185.199.108.153, .109.153, .110.153 and .111.153.
+- The domain is verified on the GitHub account.
+- `tools/build_web.py` writes `web/CNAME` (`www.colourbasher.co.uk`), which sets the custom domain on every deploy. Don't delete it.
+- HTTPS is enforced in repo Settings → Pages.
+- Saved records and settings are stored per address, so players start fresh on the new domain and need to re-add the home-screen app from it. New builds are pushed with `tools/deploy_github.py`, using a fine-grained token limited to that repository. The whole project (changelog, code-changes, version snapshots and diffs, Android project, tools) is backed up after every build to the **`backup` branch**: https://github.com/dud3737/Colour-basher/tree/backup. On GitHub, switch the branch selector from `main` to `backup` to browse it. Revoke the token at https://github.com/settings/personal-access-tokens when it's no longer needed.
 
 ## Option 1: Netlify Drop (easiest, needs a computer)
 

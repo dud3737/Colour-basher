@@ -20,8 +20,20 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
    `diff -u versions/colour-basher-OLD.html versions/colour-basher-NEW.html > versions/diffs/OLD-to-NEW.diff`
 7. Copy the game file to `app/src/main/assets/index.html`, then run `python3 tools/build_web.py` to rebuild the web app in `web/`. Rebuild the Android APK if needed.
 8. **Back up (every build):** `GITHUB_TOKEN=<token> python3 tools/backup_github.py` saves the whole project (changelog, code-changes, snapshots, diffs, Android project, web app, tools) to the `backup` branch of `dud3737/Colour-basher` as one commit. It never touches the live site.
-9. **Deploy (only when Jamie says so):** `GITHUB_TOKEN=<token> python3 tools/deploy_github.py` pushes the changed `web/` files as one commit to `main` and waits for the GitHub Pages build. Check that https://dud3737.github.io/Colour-basher/ shows the new version. The token is never stored in the project.
+9. **Deploy (only when Jamie says so):** `GITHUB_TOKEN=<token> python3 tools/deploy_github.py` pushes the changed `web/` files as one commit to `main` and waits for the GitHub Pages build. Check that https://www.colourbasher.co.uk/ shows the new version. The token is never stored in the project.
 10. **Hand over** `CHANGELOG.md` and `CODE-CHANGES.md`, and update the published Claude page. The versioned HTML, `ColourBasher-android-vX.Y.Z.zip` and `ColourBasher-web-vX.Y.Z.zip` are only made on request.
+
+---
+
+## Hosting – 2026-10-26 (no new game version)
+
+| Area | Where | Change |
+|---|---|---|
+| Hosting | Custom domain | The live site moved to **https://www.colourbasher.co.uk/**. DNS: `www` CNAME → `dud3737.github.io`, plus `@` A records to GitHub Pages' four IPs, so the bare domain redirects to www. GitHub reported the certificate as `approved`. |
+| Tools | `tools/build_web.py` | Writes `web/CNAME` containing `www.colourbasher.co.uk`. For branch-published Pages sites this file sets the custom domain; it was used because the deploy token has Contents permission but not Pages. |
+| Docs | `HOSTING.md`, checklist, `deploy_github.py` docstring | Live URL updated. |
+
+Note: the game code needed no changes, because all paths (manifest, service worker, music, icons) are relative.
 
 ---
 
