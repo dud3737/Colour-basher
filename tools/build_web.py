@@ -17,6 +17,15 @@ head_tags='''<link rel="manifest" href="manifest.webmanifest">
 '''
 assert '<title>Colour Basher</title>' in src
 web=src.replace('<title>Colour Basher</title>','<title>Colour Basher</title>\n'+head_tags,1)
+# Content-Security-Policy (web build only): only the page's own script (pinned by hash) and same-site files may load
+import base64 as _b64, hashlib as _hl
+_scripts=re.findall(r'<script>(.*?)</script>',web,flags=re.S); assert len(_scripts)==1, 'expected exactly one inline script'
+_h=_b64.b64encode(_hl.sha256(_scripts[0].encode('utf-8')).digest()).decode()
+csp=("default-src 'self'; script-src 'self' 'sha256-%s'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
+     "img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; "
+     "object-src 'none'; base-uri 'none'; form-action 'none'")%_h
+web=web.replace('<meta charset="utf-8">','<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="%s">'%csp,1)
+assert 'Content-Security-Policy' in web
 (root/'web/index.html').write_text(web,encoding='utf-8')
 # music: copied from the Android assets (single source of truth)
 if (root/'app/src/main/assets/music').is_dir():

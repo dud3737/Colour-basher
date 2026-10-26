@@ -11,7 +11,7 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ## Release checklist (every build)
 
-1. Bump `VERSION` near the top of the script in `index.html`.
+1. Bump `VERSION` near the top of the script in `index.html`, then run `python3 tools/make_fonts.py <game file>`. This re-embeds the font subsets, picking up any new characters (always safe to run).
 2. Bump `versionName` to match and increase `versionCode` by 1 in `app/build.gradle.kts`.
 3. Test in a headless browser. Use Settings → Debug to jump straight to the affected level or bonus round and set the starting lives. Play through normally from level 1 when the change affects progression (level → bonus → level) or lives carried between levels. Compare against the previous version when fixing a bug.
 4. Add an entry to `CHANGELOG.md` (player-facing) and to this file (technical, including what was tested).
@@ -22,6 +22,29 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 8. **Back up (every build):** `GITHUB_TOKEN=<token> python3 tools/backup_github.py` saves the whole project (changelog, code-changes, snapshots, diffs, Android project, web app, tools) to the `backup` branch of `dud3737/Colour-basher` as one commit. It never touches the live site.
 9. **Deploy (only when Jamie says so):** `GITHUB_TOKEN=<token> python3 tools/deploy_github.py` pushes the changed `web/` files as one commit to `main` and waits for the GitHub Pages build. Check that https://www.colourbasher.co.uk/ shows the new version. The token is never stored in the project.
 10. **Hand over** `CHANGELOG.md` and `CODE-CHANGES.md`, and update the published Claude page. The versioned HTML, `ColourBasher-android-vX.Y.Z.zip` and `ColourBasher-web-vX.Y.Z.zip` are only made on request.
+
+---
+
+## 2.0.3 – 2026-10-26 (BETA)
+
+Exact diff: `versions/diffs/2.0.2-to-2.0.3.diff` (large, because it contains the embedded font data)
+
+| Area | Where | Change |
+|---|---|---|
+| HTML | `<head>` | Removed the Google Fonts `preconnect` and stylesheet links. |
+| CSS | `/*FONTS:BEGIN*/ … /*FONTS:END*/` | Two `@font-face` rules with WOFF2 subsets as `data:` URIs: Dela Gothic One 400 (12.6 KB) and M PLUS Rounded 1c 800 (11.1 KB), each covering 116 characters. The family names are unchanged, so no other CSS changed. Copyright and licence notices are kept in the CSS comment and in the fonts' name records. |
+| Tools | `tools/make_fonts.py` | **New.** Subsets `tools/fonts/*.ttf` to printable ASCII plus every non-ASCII character in the game file (emoji excluded), then writes or replaces the block between the markers. Re-run whenever text with new characters is added (now step 1 of the checklist). |
+| Tools | `tools/fonts/` | **New.** Source TTFs (from google/fonts on GitHub) and `FONTS-LICENSE.txt` (SIL OFL 1.1; no Reserved Font Names, so subsetting is permitted). |
+| Web | `tools/build_web.py` → `web/index.html` | **New** Content-Security-Policy meta tag (web build only; the Claude viewer and Android WebView set their own rules): `default-src 'self'`, `script-src 'self' 'sha256-<hash of the single inline script>'` (computed at build time, so a changed or injected script won't run), `style-src 'self' 'unsafe-inline'` (inline style attributes), `font-src 'self' data:`, `img-src 'self' data:`, `media-src 'self'`, `connect-src 'self'`, `worker-src 'self'`, `manifest-src 'self'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'none'`. The build fails if the page ever has more than one inline script. |
+| JS | `VERSION` | `'2.0.2'` → `'2.0.3'` |
+| Android | `app/build.gradle.kts` | `versionCode` 30 → 31, `versionName` "2.0.2-beta" → "2.0.3-beta". |
+
+**Tested** in a headless browser with the web build served locally:
+- **Fonts:** both embedded fonts reported `loaded`, in the web build and in the standalone file (Claude page / Android).
+- **Full session:** unlocking debug, playing and clearing a level, Motivation, Records, music playing (`media-src`), service worker active, and an offline reload, with **zero policy violations** and **no requests to any other website**.
+- **Negative test:** a deliberately injected script from cdn.jsdelivr.net was **blocked** by the policy.
+
+Side note: earlier test screenshots used fallback fonts, because the test environment couldn't reach Google Fonts. From 2.0.3 they show the real fonts.
 
 ---
 

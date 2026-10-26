@@ -4,6 +4,14 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.0.3] – 2026-10-26 – BETA
+
+### Changed (privacy & security)
+- **No more Google Fonts.** The game's two fonts (Dela Gothic One and M PLUS Rounded 1c) are now built into the game itself, trimmed to just the letters it uses (about 24 KB together). Players' devices no longer contact Google when the game opens, the fonts work offline, and they appear instantly.
+- **Security policy** on www.colourbasher.co.uk: browsers are told to run only the game's own code and load files only from the game's own site. Anything else, such as an injected outside script, is blocked.
+
+The game looks and plays exactly the same.
+
 ## [2.0.2] – 2026-10-26 – BETA
 
 ### Fixed
