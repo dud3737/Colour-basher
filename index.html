@@ -500,7 +500,7 @@ const COLOURS=[
   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
 ];
-const VERSION='2.0.1';
+const VERSION='2.0.2';
 const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
 const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
 const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
@@ -568,39 +568,51 @@ const Music={
   tracks:['music/51.mp3','music/basher.mp3','music/koto.mp3','music/roswell.mp3'],FADE:3,
   on:store.get('cb_music',true),vol:store.get('cb_musicVol',.25),
   avail:window.top===window,graph:/^https?:$/.test(location.protocol),
-  queue:[],last:null,cur:null,players:new Set(),suspended:false,timer:null,
+  queue:[],last:null,decks:null,cur:null,suspended:false,timer:null,allowed:false,primed:false,
   nextSrc(){if(!this.queue.length){const q=shuffleArr(this.tracks.slice());if(q[0]===this.last&&q.length>1)[q[0],q[1]]=[q[1],q[0]];this.queue=q;}
     return this.last=this.queue.shift();},   // every track once per round, never the same one twice in a row
-  make(src){const a=new Audio(src);a.preload='auto';const p={a,lvl:0,target:0,rate:1,node:null,g:null};
-    if(this.graph&&Snd.ctx){try{p.node=Snd.ctx.createMediaElementSource(a);p.g=Snd.ctx.createGain();p.g.gain.value=0;p.node.connect(p.g);p.g.connect(this.bus());}catch(e){p.node=p.g=null;}}
-    a.addEventListener('timeupdate',()=>{if(p===this.cur&&!p.out&&a.duration&&a.duration-a.currentTime<=this.FADE)this.advance();});
-    a.addEventListener('ended',()=>{if(p===this.cur)this.advance();});
-    a.addEventListener('error',()=>{if(p===this.cur)setTimeout(()=>this.advance(),500);});
-    this.players.add(p);this.apply(p);return p;},   // start silent (level 0) on every path
+  /* Two persistent players ("decks"), created and unlocked once inside a tap, then reused for every track.
+     iPhone only lets a page start an audio element from a tap, and creating/tearing down elements mid-game
+     interrupted ALL game audio there - so a track change just swaps which deck is playing and reloads the idle one. */
+  setup(){if(this.decks)return;
+    this.decks=[0,1].map(()=>{const a=new Audio();a.preload='auto';const p={a,lvl:0,target:0,rate:1,node:null,g:null,out:false,unlocked:false};
+      if(this.graph&&Snd.ctx){try{p.node=Snd.ctx.createMediaElementSource(a);p.g=Snd.ctx.createGain();p.g.gain.value=0;p.node.connect(p.g);p.g.connect(this.bus());}catch(e){p.node=p.g=null;}}
+      a.addEventListener('timeupdate',()=>{if(this.on&&p===this.cur&&!p.out&&a.duration&&a.duration-a.currentTime<=this.FADE)this.advance();});
+      a.addEventListener('ended',()=>{if(p===this.cur){if(this.on)this.advance();else{p.a.pause();this.load(p);}}});   // music off: just queue up a fresh track for when it's switched back on
+      a.addEventListener('error',()=>{if(p===this.cur&&a.getAttribute('src'))setTimeout(()=>{if(p===this.cur)this.advance();},500);});
+      this.apply(p);return p;});   // decks start silent (level 0) on every path
+    if(Snd.ctx&&!this.watching){this.watching=true;   // if iOS interrupts the audio engine, bring it straight back
+      Snd.ctx.addEventListener('statechange',()=>{if(Snd.ctx.state!=='running'&&!document.hidden){const r=Snd.ctx.resume();if(r&&r.catch)r.catch(()=>{});}});}},
+  load(p){p.a.src=this.nextSrc();p.a.load();},
+  ensure(){   // inside a tap: create the decks, give each a track, and unlock any not yet unlocked
+    this.setup();
+    for(const p of this.decks){if(!p.a.getAttribute('src'))this.load(p);
+      if(!p.unlocked&&p!==this.cur){p.unlocked=true;const r=p.a.play();if(r&&r.then)r.then(()=>{if(p!==this.cur)p.a.pause();}).catch(()=>{p.unlocked=false;});}}},
   bus(){if(!this._bus){this._bus=Snd.ctx.createGain();this._bus.gain.value=this.vol;this._bus.connect(Snd.ctx.destination);}return this._bus;},
   apply(p){if(p.g)p.g.gain.value=p.lvl;else p.a.volume=Math.max(0,Math.min(1,p.lvl*this.vol));},
   fade(p,to,sec,done){p.target=to;p.rate=Math.abs(to-p.lvl)/Math.max(.05,sec);p.done=done;this.tick();},
   tick(){if(this.timer)return;const step=()=>{let busy=false;
-      for(const p of this.players){if(p.lvl!==p.target){const d=p.rate*.05;p.lvl=p.lvl<p.target?Math.min(p.target,p.lvl+d):Math.max(p.target,p.lvl-d);this.apply(p);
+      for(const p of this.decks||[]){if(p.lvl!==p.target){const d=p.rate*.05;p.lvl=p.lvl<p.target?Math.min(p.target,p.lvl+d):Math.max(p.target,p.lvl-d);this.apply(p);
         if(p.lvl===p.target&&p.done){const f=p.done;p.done=null;f();}else busy=true;}}
       if(!busy){clearInterval(this.timer);this.timer=null;}};
     this.timer=setInterval(step,50);},
-  drop(p){p.a.pause();try{p.node&&p.node.disconnect();p.g&&p.g.disconnect();}catch(e){}p.a.removeAttribute('src');p.a.load();this.players.delete(p);},
-  play(p,fadeSec){const r=p.a.play();if(r&&r.catch)r.catch(()=>{});this.fade(p,this.primed?0:1,fadeSec);},   // stays silent while primed (waiting for the countdown)
-  advance(){const old=this.cur;if(old){old.out=true;this.fade(old,0,this.FADE,()=>this.drop(old));}
-    this.cur=this.make(this.nextSrc());this.play(this.cur,old?this.FADE:1.5);},
-  kick(){   // called on every tap (browsers only allow music to start from a tap)
-    if(!this.avail||!this.on||document.hidden)return;
-    if(!this.cur){if(this.allowed)this.advance();return;}   // before the first game starts, taps don't start music
+  play(p,fadeSec){p.unlocked=true;const r=p.a.play();if(r&&r.catch)r.catch(()=>{});this.fade(p,this.primed?0:1,fadeSec);},   // stays silent while primed (waiting for the countdown); a refused play is retried on the next tap
+  advance(){const old=this.cur,nxt=this.decks.find(p=>p!==old);
+    if(old){old.out=true;this.fade(old,0,this.FADE,()=>{old.a.pause();old.out=false;this.load(old);});}   // faded-out deck preloads the track after next
+    nxt.out=false;try{nxt.a.currentTime=0;}catch(e){}this.cur=nxt;this.play(nxt,old?this.FADE:1.5);},
+  kick(){   // called on every tap: browsers only allow music to (re)start from a tap
+    if(!this.avail||!this.on||!this.allowed||document.hidden)return;   // before the first game starts, taps don't start music
+    this.ensure();
+    if(!this.cur){this.advance();return;}
     if(this.suspended||this.cur.a.paused){this.suspended=false;this.play(this.cur,1);}},
-  /* first music of the session: primed silently on the New Game tap (browsers only allow audio to start from a tap),
-     then faded in when the level-1 countdown shows "3" */
-  prime(){this.allowed=true;if(!this.avail||!this.on||this.cur||document.hidden)return;
-    this.cur=this.make(this.nextSrc());const r=this.cur.a.play();if(r&&r.catch)r.catch(()=>{});this.primed=true;},
+  /* first music of the session: primed silently on the New Game tap, then faded in when the level-1 countdown shows "3" */
+  prime(){this.allowed=true;if(!this.avail||!this.on||document.hidden)return;this.ensure();if(this.cur)return;this.primed=true;this.advance();},
   go(){if(!this.primed||!this.cur)return;this.primed=false;this.fade(this.cur,1,1.5);},
-  suspend(){if(!this.cur)return;this.suspended=true;for(const p of [...this.players])if(p!==this.cur)this.drop(p);this.cur.a.pause();this.cur.lvl=0;this.cur.target=0;this.apply(this.cur);},
+  suspend(){if(!this.cur)return;this.suspended=true;
+    for(const p of this.decks){p.a.pause();if(p!==this.cur&&p.out){p.out=false;p.done=null;p.lvl=p.target=0;this.apply(p);this.load(p);}}
+    this.cur.lvl=0;this.cur.target=0;this.cur.done=null;this.apply(this.cur);},
   setOn(on){this.on=on;store.set('cb_music',on);if(on){this.suspended=false;this.kick();}else if(this.cur){const p=this.cur;this.fade(p,0,.6,()=>{if(!this.on)p.a.pause();});}syncMusicUI();},
-  setVol(v){this.vol=v;store.set('cb_musicVol',v);if(this._bus)this._bus.gain.value=v;for(const p of this.players)this.apply(p);syncMusicUI();}
+  setVol(v){this.vol=v;store.set('cb_musicVol',v);if(this._bus)this._bus.gain.value=v;for(const p of this.decks||[])this.apply(p);syncMusicUI();}
 };
 function syncMusicUI(){const pct=Math.round(Music.vol*100)+'%';
   for(const id of ['setMusic','pauseMusic'])$(id).textContent=Music.on?'ON':'OFF';
