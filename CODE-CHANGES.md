@@ -25,6 +25,21 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 2.0.4 – 2026-10-26 (BETA)
+
+Exact diff: `versions/diffs/2.0.3-to-2.0.4.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| HTML | `.tips` (home screen) | Fourth line: `<b style="color:#e0399f">✨ Clear a level</b> – tap MOTIVATION for an inspiring message!` (pink to match the Motivation button). |
+| CSS | Font block | Re-run of `tools/make_fonts.py` (117 characters, adding ✨; the emoji itself still shows in the phone's emoji font). |
+| JS | `VERSION` | `'2.0.3'` → `'2.0.4'` |
+| Android | `app/build.gradle.kts` | `versionCode` 31 → 32, `versionName` "2.0.3-beta" → "2.0.4-beta". |
+
+**Tested** in a headless browser: the new line shows as the last tip, and the taller tips box still clears the version label with the logo fully on screen at 390×780, 375×667 (iPhone SE size) and 360×640.
+
+---
+
 ## 2.0.3 – 2026-10-26 (BETA)
 
 Exact diff: `versions/diffs/2.0.2-to-2.0.3.diff` (large, because it contains the embedded font data)

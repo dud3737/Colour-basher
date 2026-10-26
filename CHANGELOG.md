@@ -4,6 +4,11 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.0.4] – 2026-10-26 – BETA
+
+### Changed
+- The home-screen tips box has a new line: **"✨ Clear a level – tap MOTIVATION for an inspiring message!"**
+
 ## [2.0.3] – 2026-10-26 – BETA
 
 ### Changed (privacy & security)
