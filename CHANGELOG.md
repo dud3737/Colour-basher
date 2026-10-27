@@ -4,6 +4,12 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.0.6] – 2026-10-27 – BETA
+
+### Changed
+- **All four music tracks are now the same loudness.** Before, the gap between the loudest (51) and quietest (Basher) was about 10 dB, so the volume jumped between songs. Now all four sit at the same level: 51 and Koto are turned down a little, Basher and Roswell up. The tracks were re-made from the original high-quality files, so there's no extra quality loss.
+- Overall music volume is about the same as before, so the 25% default still feels right.
+
 ## [2.0.5] – 2026-10-27 – BETA
 
 ### Changed

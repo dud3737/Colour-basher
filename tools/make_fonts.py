@@ -13,7 +13,7 @@ html_wo = re.sub(r'/\*FONTS:BEGIN\*/.*?/\*FONTS:END\*/', '', html, flags=re.S)
 chars = {chr(c) for c in range(0x20, 0x7f)} | {ch for ch in html_wo if ord(ch) > 0x7e and not (0x1F000 <= ord(ch) <= 0x1FAFF) and ch not in '\u200d\ufe0f'}
 text = ''.join(sorted(chars))
 def make(ttf):
-    f = TTFont(root/'fonts'/ttf)
+    f = TTFont(root/'fonts'/ttf, recalcTimestamp=False)   # fixed timestamp -> identical output on every run
     opts = subset.Options(); opts.flavor = 'woff2'; opts.name_IDs = ['*']; opts.name_languages = ['*']; opts.layout_features = ['*']
     s = subset.Subsetter(opts); s.populate(text=text); s.subset(f)
     buf = io.BytesIO(); f.flavor = 'woff2'; f.save(buf); return buf.getvalue()

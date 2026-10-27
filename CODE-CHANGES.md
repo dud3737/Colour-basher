@@ -25,6 +25,33 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 2.0.6 – 2026-10-27 (BETA)
+
+Exact diff: `versions/diffs/2.0.5-to-2.0.6.diff`
+
+| Area | Where | Change |
+|---|---|---|
+| Assets | `music/*.mp3` | Loudness-matched to **−18 LUFS** (EBU R128 integrated loudness). Made from the original uploads (51, Basher and Roswell at 320 kbps; Koto from the artist's edit with the same 2.6 s head trim and 0.5 s end fade) as `volume=<gain>dB, alimiter=limit=0.891 (−1 dBFS) : attack 5 ms : release 50 ms`, then 128 kbps CBR, 44.1 kHz, metadata stripped. Pure gain, no compression; the limiter only catches stray peaks. |
+| JS | `Music.tracks` | Cache-busting versions bumped: `51?v=2`, `basher?v=2`, `koto?v=3`, `roswell?v=2`. |
+| Tools | `tools/make_fonts.py` | `TTFont(..., recalcTimestamp=False)`, so the embedded fonts are byte-identical on every run. Previously a fresh timestamp changed the font data each time, which made diffs noisy. The font data was re-embedded once in this release; the character set is unchanged (117). |
+| JS | `VERSION` | `'2.0.5'` → `'2.0.6'` |
+| Android | `app/build.gradle.kts` | `versionCode` 33 → 34, `versionName` "2.0.5-beta" → "2.0.6-beta". |
+
+**Loudness measurements:**
+
+| Track | Before | Gain | Samples limited | After | True peak |
+|---|---|---|---|---|---|
+| 51 | −13.11 LUFS | −5.33 dB | 0% | −18.44 LUFS | −5.0 dBTP |
+| Basher | −23.33 LUFS | +4.90 dB | 0.001% | −18.44 LUFS | −0.7 dBTP |
+| Roswell | −21.68 LUFS | +3.22 dB | 0.26% | −18.51 LUFS | −0.6 dBTP |
+| Koto | −15.02 LUFS | −3.40 dB | 0.003% | −18.42 LUFS | −3.5 dBTP |
+
+The spread between tracks went from **10.2 LU to 0.09 LU**. Durations are unchanged, and dynamic range (LRA) is unchanged within 0.1 LU, confirming no compression. The 0.4 LU offset from −18 comes from the MP3 encoder and applies equally to all four tracks.
+
+**Tested** in a headless browser (web build, served locally): the game loaded all four new addresses, fully buffered with the expected durations (96.7 s, 151.6 s, 103.0 s, 162.0 s), and with no policy violations.
+
+---
+
 ## 2.0.5 – 2026-10-27 (BETA)
 
 Exact diff: `versions/diffs/2.0.4-to-2.0.5.diff`
