@@ -31,14 +31,14 @@ Exact diff: `versions/diffs/2.0.4-to-2.0.5.diff`
 
 | Area | Where | Change |
 |---|---|---|
-| Assets | `music/koto.mp3` | Replaced with the new upload (`Koto (1).mp3`, 1:57, 128 kbps). The source began with 2.6 s of digital silence and ended with a slow fade from about −30 dBFS at 88 s down to −48 dBFS at 117 s (no true silence). The new file is `ffmpeg -ss 2.60 -to 106.0`, with `afade=out` over the last 2.0 s, then 128 kbps CBR, 44.1 kHz, metadata stripped. Result: 103.4 s, 1.6 MB, loudness −14.9 dBFS. The cut point (106 s) is about 26 dB below the track's average level. |
+| Assets | `music/koto.mp3` | Replaced with the artist's shorter edit (`Koto (2).mp3`, 1:45.6, 128 kbps). Source analysis: 2.6 s of digital silence at the start; it ends at about −41 dBFS with no fade or trailing silence. The new file is `ffmpeg -ss 2.60`, with `afade=out` over the final 0.5 s (anti-click safety), then 128 kbps CBR, 44.1 kHz, metadata stripped. Result: 103.0 s, 1.6 MB, loudness −15.3 dBFS. (An earlier, unreleased cut of the previous upload, ending at 106 s with a 2 s fade, was superseded before going live.) |
 | JS | `Music.tracks` | `music/koto.mp3` → `music/koto.mp3?v=2`, which forces a fresh download past browser caches. Bump the `?v=` number whenever a track file is replaced. |
 | JS | `VERSION` | `'2.0.4'` → `'2.0.5'` |
 | Android | `app/build.gradle.kts` | `versionCode` 32 → 33, `versionName` "2.0.4-beta" → "2.0.5-beta". |
 
-**Tested** in a headless browser (web build, served locally): the game loaded `music/koto.mp3?v=2` with duration 103.4 s, fully buffered, with no policy violations. The new file's loudness was checked: −34 dB in the first second (straight into the music), and −38, −39, −40, −42 then −51 dB across the last 5 seconds.
+**Tested** in a headless browser (web build, served locally): the game loaded `music/koto.mp3?v=2` with duration 103.0 s, fully buffered, with no policy violations. The new file measured −34 dB in the first half-second (straight into the music) and about −40 dB to −46 dB across the last 3 seconds. Those last 3 seconds are faded out by the game's crossfade anyway.
 
-Loudness of the four tracks, for reference: 51 −12.1, Koto −14.9, Roswell −20.1 and Basher −23.9 dBFS. Basher is noticeably quieter than 51; levelling them out would be a separate change.
+Loudness of the four tracks, for reference: 51 −12.1, Koto −15.3, Roswell −20.1 and Basher −23.9 dBFS. Basher is noticeably quieter than 51; levelling them out would be a separate change.
 
 ---
 

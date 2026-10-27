@@ -7,10 +7,10 @@ The technical detail behind each release is in `CODE-CHANGES.md`.
 ## [2.0.5] – 2026-10-27 – BETA
 
 ### Changed
-- **New version of the Koto track** by Dreamback.
-  - Trimmed the ~30-second, near-silent fade-out at the end. The track now ends with a short 2-second fade where it had gone very quiet, so the crossfade into the next song happens while there's still music playing.
-  - Also removed 2.6 seconds of complete silence at the start.
-  - Koto now runs 1:43 (was 2:45).
+- **New, shorter version of the Koto track** by Dreamback, edited down by the artist.
+  - Removed 2.6 seconds of complete silence at the start, so it begins straight away.
+  - Added a tiny half-second fade on the final note, so it never ends with a click.
+  - Koto now runs 1:43 (was 2:45). Its quiet ending is covered by the game's 3-second crossfade into the next song.
 - Players' phones fetch the new Koto straight away instead of reusing a saved copy of the old one.
 
 ## [2.0.4] – 2026-10-26 – BETA
