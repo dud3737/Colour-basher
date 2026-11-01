@@ -5,6 +5,11 @@ const ok = n => assert.ok(!checkName(n).error, `expected "${n}" to be allowed`);
 const no = n => assert.ok(checkName(n).error, `expected "${n}" to be rejected`);
 ['Jamie', 'BlockBasher99', 'Classic', 'Sassy Sue', 'Bass Player', 'Glasshouse', 'Cocktail', 'Hancock', 'Peacock', 'Jamie_D'].forEach(ok);
 ['ab', 'A very long name here', '<script>', '12345', 'Dreamback', 'admin', 'F u c k', 'Fuuck', 'sh1t', 'ass hat', 'n1gg4'].forEach(no);
+// racist / hate terms (whole words, camelCase, leetspeak, stretched, number codes)
+['Paki', 'PakiBoy', 'p4ki', 'Coon', 'Chink99', 'Sp1c', 'Wog', 'Kike', 'J4p', 'Negro', 'Honky', 'Gyppo', 'Golliwog', 'Raghead', 'Wetback', 'Darkie',
+ 'Sieg Heil', 'WhitePower', 'KKK', 'Gamer1488', 'Niiigga', 'Tranny'].forEach(no);
+// innocent names that contain those letters must still be allowed
+['Pakistan', 'Raccoon', 'Tycoon', 'Cocoon', 'Montenegro', 'Spicy Sam', 'Spice Girl', 'Japan', 'Wogan', 'Nigeria', 'Kraken', 'Sambora', 'Dagobert', 'Woppy', 'Jasper', 'Japonica', 'Player88'].forEach(ok);
 assert.equal(checkName('  Spaced   Out  ').name, 'Spaced Out');
 assert.equal(maxScore(3), 25500);
 assert.ok(!checkScore({ runId: 'abcdef12-1', score: 16150, level: 3, playMs: 61000 }).error);
