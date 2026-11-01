@@ -1,0 +1,16 @@
+# Colour Basher world leaderboard API (Cloudflare Worker + D1)
+name = "colourbasher-api"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "colourbasher"
+database_id = "1425eba7-df91-4b1f-bd89-535213ef5fe5"
+migrations_dir = "migrations"
+
+[vars]
+API_VERSION = "1"
+# extra allowed browser origins for local testing only (comma-separated); empty in production
+DEV_ORIGINS = ""

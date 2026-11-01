@@ -1,0 +1,56 @@
+# Deploys the world leaderboard API (server/) to Cloudflare. Runs ONLY when the `server` branch is pushed
+# (tools/deploy_server.py does that, on request). Uses the two encrypted repository secrets; nothing secret is in the repo.
+name: Deploy leaderboard API
+on:
+  push:
+    branches: [server]
+permissions:
+  contents: read
+  statuses: write        # to publish the API address as a commit status
+concurrency: deploy-api
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: "false"
+      WRANGLER: npx --yes wrangler@4.151.1
+      CF: https://api.cloudflare.com/client/v4
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1   # v7.0.1 (pinned)
+      - name: Rule unit tests
+        run: node test/rules.test.mjs
+      - name: Ensure the account has a workers.dev address
+        run: |
+          sub=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" $CF/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain | jq -r '.result.subdomain // empty')
+          if [ -z "$sub" ]; then
+            for try in colourbasher colourbasher-api colourbasher-$RANDOM; do
+              r=$(curl -s -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json" $CF/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain -d "{\"subdomain\":\"$try\"}")
+              if [ "$(echo "$r" | jq -r .success)" = true ]; then sub=$try; break; fi
+              echo "$r" | jq -c '.errors'
+            done
+          fi
+          test -n "$sub"; echo "workers.dev subdomain: $sub"; echo "SUB=$sub" >> $GITHUB_ENV
+      - name: Apply database migrations
+        run: $WRANGLER d1 migrations apply colourbasher --remote
+      - name: Deploy the Worker
+        run: $WRANGLER deploy
+      - name: Smoke tests against the live API
+        run: |
+          URL=https://colourbasher-api.$SUB.workers.dev; echo "URL=$URL" >> $GITHUB_ENV
+          for i in $(seq 1 20); do [ "$(curl -s -o /dev/null -w '%{http_code}' $URL/v1/health)" = 200 ] && break; sleep 3; done
+          curl -sf $URL/v1/health | jq -e '.ok == true'
+          curl -sf "$URL/v1/leaderboard?period=all" | jq -e '.top | type == "array"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -d '{"name":"Nope"}' $URL/v1/player)" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"runId":"abcdefgh","score":10,"level":1,"playMs":9000}' -H 'Origin: https://www.colourbasher.co.uk' $URL/v1/score)" = 401
+      - name: Publish the API address
+        if: always() && env.URL != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=success -f context=leaderboard-api -f description="$URL" -f target_url="$URL/v1/health" >/dev/null
+          echo "API live at $URL"
