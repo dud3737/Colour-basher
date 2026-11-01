@@ -22,7 +22,7 @@ import base64 as _b64, hashlib as _hl
 _scripts=re.findall(r'<script>(.*?)</script>',web,flags=re.S); assert len(_scripts)==1, 'expected exactly one inline script'
 _h=_b64.b64encode(_hl.sha256(_scripts[0].encode('utf-8')).digest()).decode()
 csp=("default-src 'self'; script-src 'self' 'sha256-%s'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
-     "img-src 'self' data:; media-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; "
+     "img-src 'self' data:; media-src 'self'; connect-src 'self' https://colourbasher-api.colourbasher.workers.dev; worker-src 'self'; manifest-src 'self'; "
      "object-src 'none'; base-uri 'none'; form-action 'none'")%_h
 web=web.replace('<meta charset="utf-8">','<meta charset="utf-8">\n<meta http-equiv="Content-Security-Policy" content="%s">'%csp,1)
 assert 'Content-Security-Policy' in web
@@ -49,7 +49,8 @@ self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.add
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('colour-basher-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())
   .then(()=>self.clients.matchAll({type:'window'})).then(cs=>cs.forEach(c=>c.postMessage({type:'cb-version',v:VERSION}))));});   // pages older than this version refresh themselves
 self.addEventListener('fetch',e=>{
-  const r=e.request;if(r.method!=='GET'||new URL(r.url).pathname.includes('/music/'))return;   // music streams straight from the network (range requests can't be cached)
+  const r=e.request,u=new URL(r.url);
+  if(r.method!=='GET'||u.origin!==self.location.origin||u.pathname.includes('/music/'))return;   // only this site's own files; never the leaderboard API (always live) or music (streamed)
   if(r.mode==='navigate'){   // the game page: always re-checked with the server (bypasses the 10-min browser cache), cached copy when offline
     e.respondWith(fetch(r.url,{cache:'no-cache',credentials:'same-origin'}).then(res=>{const copy=res.clone();caches.open(CACHE).then(c=>c.put('index.html',copy));return res;})
       .catch(()=>caches.match('index.html')));return;}

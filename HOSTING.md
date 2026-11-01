@@ -24,6 +24,14 @@ The game is hosted on GitHub Pages at **https://www.colourbasher.co.uk/** (repos
 - HTTPS is enforced in repo Settings → Pages.
 - Saved records and settings are stored per address, so players start fresh on the new domain and need to re-add the home-screen app from it. New builds are pushed with `tools/deploy_github.py`, using a fine-grained token limited to that repository. The whole project (changelog, code-changes, version snapshots and diffs, Android project, tools) is backed up after every build to the **`backup` branch**: https://github.com/dud3737/Colour-basher/tree/backup. On GitHub, switch the branch selector from `main` to `backup` to browse it. Revoke the token at https://github.com/settings/personal-access-tokens when it's no longer needed.
 
+## World leaderboard server (Cloudflare)
+
+- **API:** https://colourbasher-api.colourbasher.workers.dev (a Cloudflare Worker), with its database in Cloudflare D1 (`colourbasher`).
+- **Deploys:** code lives in `server/`. `tools/deploy_server.py` pushes it to the `server` branch, and the GitHub Action `Deploy leaderboard API` deploys it using the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Nothing secret is stored in the repository.
+- **Local testing:** `npx wrangler@4.151.1 d1 migrations apply colourbasher --local`, then `npx wrangler@4.151.1 dev --local` (set `DEV_ORIGINS` in a local copy of `wrangler.toml`).
+- **Moderation:** Cloudflare dashboard → Workers & Pages → D1 → `colourbasher` → Console. To hide a player: `UPDATE players SET hidden = 1 WHERE name = 'TheName';`. To remove one game: `DELETE FROM scores WHERE id = …;`.
+- **Costs:** Cloudflare's free tier (Workers: 100k requests a day; D1: millions of reads a day, 5 GB) far exceeds what the beta needs.
+
 ## Option 1: Netlify Drop (easiest, needs a computer)
 
 1. Unzip `ColourBasher-web-vX.Y.Z.zip`.

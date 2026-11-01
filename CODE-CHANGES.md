@@ -20,8 +20,57 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
    `diff -u versions/colour-basher-OLD.html versions/colour-basher-NEW.html > versions/diffs/OLD-to-NEW.diff`
 7. Copy the game file to `app/src/main/assets/index.html`, then run `python3 tools/build_web.py` to rebuild the web app in `web/`. Rebuild the Android APK if needed.
 8. **Back up (every build):** `GITHUB_TOKEN=<token> python3 tools/backup_github.py` saves the whole project (changelog, code-changes, snapshots, diffs, Android project, web app, tools) to the `backup` branch of `dud3737/Colour-basher` as one commit. It never touches the live site.
-9. **Deploy (only when Jamie says so):** `GITHUB_TOKEN=<token> python3 tools/deploy_github.py` pushes the changed `web/` files as one commit to `main` and waits for the GitHub Pages build. Check that https://www.colourbasher.co.uk/ shows the new version. The token is never stored in the project.
-10. **Hand over** `CHANGELOG.md` and `CODE-CHANGES.md`, and update the published Claude page. The versioned HTML, `ColourBasher-android-vX.Y.Z.zip` and `ColourBasher-web-vX.Y.Z.zip` are only made on request.
+9. **Server (only when it changed, and only when Jamie says so):** `GITHUB_TOKEN=<token> python3 tools/deploy_server.py` pushes `server/` and the deploy workflow to the `server` branch. GitHub Actions then runs the unit tests, applies database migrations, deploys to Cloudflare and runs smoke tests (results are published as commit statuses). Test locally first with `wrangler dev --local` (see `HOSTING.md`).
+10. **Deploy (only when Jamie says so):** `GITHUB_TOKEN=<token> python3 tools/deploy_github.py` pushes the changed `web/` files as one commit to `main` and waits for the GitHub Pages build. Check that https://www.colourbasher.co.uk/ shows the new version. The token is never stored in the project.
+11. **Hand over** `CHANGELOG.md` and `CODE-CHANGES.md`, and update the published Claude page. The versioned HTML, `ColourBasher-android-vX.Y.Z.zip` and `ColourBasher-web-vX.Y.Z.zip` are only made on request.
+
+---
+
+## 2.1.0 – 2026-11-01 (BETA): world leaderboard
+
+Exact diff (game file): `versions/diffs/2.0.6-to-2.1.0.diff`
+
+### Server (new: `server/`, deployed to Cloudflare at https://colourbasher-api.colourbasher.workers.dev)
+
+| Area | Where | What |
+|---|---|---|
+| Config | `server/wrangler.toml` | Worker `colourbasher-api`, D1 binding `DB` → database `colourbasher` (`1425eba7-…`), `workers_dev = true`, `DEV_ORIGINS` (empty in production; used for local tests only). |
+| Database | `server/migrations/0001_init.sql` | `players` (id, name, case/space-insensitive unique `name_key`, `token_hash`, `hidden`, timestamps), `scores` (one row per player per run: score, level, `play_ms`, ISO `week`, timestamps; unique on player + run), and `rate` (short-lived rate-limit counters). |
+| API | `server/src/index.js` | `GET /v1/health`. `POST /v1/player {name}` returns `{name, token}`, where the token is a random UUID plus a 48-hex secret and only its SHA-256 is stored. `PUT /v1/player` renames; `DELETE /v1/player` removes the player and all their scores. `POST /v1/score {runId, score, level, playMs}`: a run may only move forward. `GET /v1/leaderboard?period=all\|week`: top 20 by each player's best run, plus `me` (rank and best) if signed in. |
+| Security | `index.js` | Writes only accepted from the game's own site (`Origin` check, 403 otherwise). CORS is locked to colourbasher.co.uk. Bearer token compared with `timingSafeEqual`. Request bodies are limited to 2 KB, and all SQL uses bound parameters. Rate limits per hashed connection: 5 joins an hour, 40 writes and 90 reads a minute. The rate key is a salted SHA-256 of date + IP (rotates daily) and expires within the window; old keys are pruned. Errors never echo internals. `Cache-Control: no-store`, `nosniff`. |
+| Rules | `server/src/rules.js` | **Names:** 3–14 characters of `[A-Za-z0-9 _-]` with at least one letter. Long offensive words are blocked anywhere in a name (including leetspeak and stretched spellings); short ones only as whole words, so names like Classic, Hancock and Bass Player are fine. Reserved names (admin, dreamback, etc.) are refused. **Scores:** must be a multiple of 10 and at most `8000 × L + 125 × L(L+1)`, a generous ceiling from the points rules. **Time:** `playMs ≥ 4000 × level` and at most 6 h. **Run ID:** `[A-Za-z0-9-]{8,64}`. |
+| Tests | `server/test/rules.test.mjs` | Unit tests for names, score limits and ISO weeks; run in CI before every deploy. |
+| Deploy | `.github/workflows/deploy-api.yml` + `tools/deploy_server.py` | Triggered only by pushes to the `server` branch. Pinned `actions/checkout@3d3c42e` (v7.0.1) and `wrangler@4.151.1`. Steps: ensure a workers.dev subdomain (created `colourbasher`), apply migrations, deploy, then smoke tests (health 200, board 200, other-site write 403, unauthenticated score 401). The address and smoke results are posted as commit statuses. Cloudflare credentials only ever live in the repository's encrypted secrets. |
+| Moderation | D1 console | Hide a player: `UPDATE players SET hidden = 1 WHERE name = '…';` Remove a score: `DELETE FROM scores WHERE id = …;` |
+
+### Game
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `Net` | **New** client. API base URL (a localhost-only override, `cb_api`, exists for tests). `player` {name, token} and `pending` {runId → score, level, playMs} live in `localStorage` (`cb_player`, `cb_pending`, newest 20 kept). Methods: `req` (8 s timeout, `credentials: 'omit'`, `no-store`), `queue`, `flush` (stops on offline / 429 / 5xx; forgets a revoked token on 401; drops permanently refused runs), `join`, `rename`, `remove` and `board`. `avail()` is true only on the real website (https or localhost, top-level). Flushes on start-up (after 3 s), when the device comes online, and after joining. |
+| JS | Scoring hooks | `newGame()` gives each game a random `runId` (`crypto.randomUUID`), sets `runMs = 0` and `cheated = false`. `win()` adds the level time to `runMs`; `bonusEnd()` adds the bonus time. `bankScore()` queues the run unless it's a debug game or `G.cheated`. The ⚡ cheat sets `G.cheated`, so later progress in that game isn't sent (anything already sent stays). |
+| HTML/JS | Records | Tabs: MY TIMES / MY SCORES / 🌍 WORLD. `renderWorld()`: ALL-TIME / THIS WEEK selector, loading, offline and error states, top 20 (names escaped), your row highlighted, and "You: #rank · score" or a JOIN button. CLEAR is hidden on the World tab. |
+| HTML/JS | `#ovName` | Name entry (16px+ input so iPhones don't zoom; Enter saves) with server error messages shown in place. Returns to Settings or Records, whichever opened it. Android back closes it. |
+| HTML/JS | Settings | `#netBox`: World name with JOIN / CHANGE, Online scores DELETE (two-tap confirm), and a privacy note (`<details>`). Hidden where the leaderboard isn't available. |
+| JS | `syncTrap()` | Back-button history sync is now deferred by one tick (`syncTrapNow`). Previously, closing Settings and opening a level in the same tap fired a `history.back()` and then a `pushState`, which left the flag out of sync, so a later "back" left the site. |
+| Web | `build_web.py` | CSP `connect-src` adds `https://colourbasher-api.colourbasher.workers.dev`. Service worker: only same-origin requests are handled, so the API is never cached. Before this fix, a leaderboard response got cached and went stale, which the tests caught. |
+| JS | `VERSION` | `'2.0.6'` → `'2.1.0'` |
+| Android | `app/build.gradle.kts` | `versionCode` 34 → 35, `versionName` "2.0.6-beta" → "2.1.0-beta". |
+
+### Tested
+
+- **Server rules (unit):** 21 names (rude, leetspeak, stretched, reserved, Scunthorpe-style false positives), score ceilings, timing, run IDs and ISO weeks, including 2027-01-01 = 2026-W53.
+- **Server (local Worker + local D1, 30 checks):** join; duplicate name in a different case → 409; rude and SQL-style names → 400; a run moving forward OK; going backwards, impossible scores, impossibly fast play and non-×10 scores → 422; missing or forged token → 401; only each player's best counts; ranks and `me`; weekly board; rename OK and taken → 409; writes from another site or with no Origin → 403; CORS never echoes other origins; oversized body → 400; rate limit → 429 within 45 rapid writes; hidden players removed from boards; delete removes the player and scores, the token stops working, and the name becomes free again; rate keys contain no IP addresses.
+- **Live deploy (GitHub Actions → Cloudflare):** unit tests, migrations and deploy passed; smoke tests `health=200 board=200 other-site=403 no-login=401`.
+- **End to end (web build in a browser against a local Worker):**
+  - World tab shows the JOIN state; a rude name was refused with its message, and "Jamie" joined.
+  - A real level-1 win was sent automatically (play time 15.6 s) and appeared on both boards as #1.
+  - A debug game was not sent.
+  - Offline: the World tab showed a connection message; a game won offline waited in the queue and was sent automatically once back online.
+  - After using ⚡, level-2 progress was not sent; the server kept the pre-⚡ level-1 score.
+  - Rename and delete worked and showed in Settings and on the server.
+  - The back button paused, resumed, closed Settings and left from the home screen; quitting after a debug level no longer leaves the site.
+  - No policy violations and no page errors.
 
 ---
 

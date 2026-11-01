@@ -4,6 +4,23 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.1.0] – 2026-11-01 – BETA
+
+### Added
+- **🌍 World leaderboard.** Records now has three tabs: **My times**, **My scores** and **🌍 World**.
+  - World shows the **top 20 game scores** from all players, **all-time** and **this week** (weeks start on Monday), with your own position underneath even if you're not in the top 20.
+  - It's **optional**: tap **Join the world leaderboard** (or use Settings) and pick a name, 3–14 letters, numbers, spaces, `-` or `_`. Rude names, look-alikes of names already taken, and names like "admin" are refused. You can change your name at any time.
+  - Each game's score is sent automatically after every level and bonus round. Only your best game counts towards your ranking.
+  - If you're offline, scores wait on your phone and are sent when you're back online. Games played before you join are sent too (up to your last 20).
+  - **Not counted:** debug games, and games where a hidden extra was used.
+- **Settings → World name**, with a **DELETE** button that removes your name and all your online scores (tap twice to confirm), and a short **privacy note**.
+
+### Fixed
+- In the web app, starting a debug level from Settings and then quitting to the home screen could take you off the site.
+
+### Notes
+- The world leaderboard works on www.colourbasher.co.uk. The Claude-hosted copy and the Android app say so instead.
+
 ## [2.0.6] – 2026-10-27 – BETA
 
 ### Changed
