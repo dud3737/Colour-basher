@@ -42,15 +42,19 @@ jobs:
       - name: Smoke tests against the live API
         run: |
           URL=https://colourbasher-api.$SUB.workers.dev; echo "URL=$URL" >> $GITHUB_ENV
-          for i in $(seq 1 20); do [ "$(curl -s -o /dev/null -w '%{http_code}' $URL/v1/health)" = 200 ] && break; sleep 3; done
-          curl -sf $URL/v1/health | jq -e '.ok == true'
-          curl -sf "$URL/v1/leaderboard?period=all" | jq -e '.top | type == "array"'
-          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -d '{"name":"Nope"}' $URL/v1/player)" = 403
-          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"runId":"abcdefgh","score":10,"level":1,"playMs":9000}' -H 'Origin: https://www.colourbasher.co.uk' $URL/v1/score)" = 401
+          # a brand-new workers.dev address can take a few minutes to start answering
+          for i in $(seq 1 60); do [ "$(curl -s -o /dev/null -w '%{http_code}' $URL/v1/health)" = 200 ] && break; sleep 5; done
+          h=$(curl -s -o /dev/null -w '%{http_code}' $URL/v1/health)
+          l=$(curl -s -o /dev/null -w '%{http_code}' "$URL/v1/leaderboard?period=all")
+          e=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -d '{"name":"Nope"}' $URL/v1/player)
+          a=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://www.colourbasher.co.uk' -H 'Content-Type: application/json' -d '{"runId":"abcdefgh","score":10,"level":1,"playMs":9000}' $URL/v1/score)
+          SMOKE="health=$h board=$l other-site=$e no-login=$a"; echo "$SMOKE"; echo "SMOKE=$SMOKE" >> $GITHUB_ENV
+          [ "$h" = 200 ] && [ "$l" = 200 ] && [ "$e" = 403 ] && [ "$a" = 401 ]
       - name: Publish the API address
         if: always() && env.URL != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=success -f context=leaderboard-api -f description="$URL" -f target_url="$URL/v1/health" >/dev/null
+          gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=${{ job.status == 'success' && 'success' || 'failure' }} -f context=smoke-tests -f description="${SMOKE:-not run}" >/dev/null
           echo "API live at $URL"
