@@ -52,7 +52,7 @@
    <div class="setrow musicrow"><span>Volume</span><input type="range" class="vol" id="setMusicVol" min="0" max="100" step="5" aria-label="Music volume"><b class="volv" id="setMusicVolV">25%</b></div>
    <p class="dbg-note" id="musicNote" hidden>Music plays in the web app and Android versions.</p>
 +  <div class="netbox" id="netBox">
-+    <div class="setrow"><span>World name</span><b class="wname" id="wName">–</b><button class="btn small blue" id="wNameBtn">JOIN</button></div>
++    <div class="setrow"><span>🌍 Name</span><b class="wname" id="wName">–</b><button class="btn small blue" id="wNameBtn">JOIN</button></div>
 +    <div class="setrow" id="wDelRow"><span>Online scores</span><button class="btn small red" id="wDel">DELETE</button></div>
 +    <details class="privacy"><summary>Privacy note</summary>
 +      <p>The world leaderboard is optional. If you join, we store the name you choose, a random player ID, and for each game your score, level reached, play time and when it was set. We don’t ask for an email address, account or any contact details, and nothing is used for tracking or adverts.</p>
