@@ -13,7 +13,7 @@ The technical detail behind each release is in `CODE-CHANGES.md`.
   - Each game's score is sent automatically after every level and bonus round. Only your best game counts towards your ranking.
   - If you're offline, scores wait on your phone and are sent when you're back online. Games played before you join are sent too (up to your last 20).
   - **Not counted:** debug games, and games where a hidden extra was used.
-- **Settings → 🌍 Name**, with a **DELETE** button that removes your name and all your online scores (tap twice to confirm), and a short **privacy note**.
+- **Settings → 🌍 World leaderboard** shows "Playing as …" with JOIN / CHANGE, a **DELETE** button that removes your name and all your online scores (tap twice to confirm), and a short **privacy note**.
 
 ### Fixed
 - In the web app, starting a debug level from Settings and then quitting to the home screen could take you off the site.

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-zNiBizkxL0Pt+n5fEcUzsAotBxr/L62vojIq2klr+UY='; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; media-src 'self'; connect-src 'self' https://colourbasher-api.colourbasher.workers.dev; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-i7hJgk01GJNjTAd592fHGQMVZvePdr5/QTcyO7rvVUg='; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; media-src 'self'; connect-src 'self' https://colourbasher-api.colourbasher.workers.dev; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#140d3a">
 <title>Colour Basher</title>
@@ -205,7 +205,7 @@ a.btn{display:flex;align-items:center;justify-content:center;gap:10px;text-decor
 .namein{width:100%;font:inherit;font-size:18px;padding:10px 12px;border:3px solid var(--edge);border-radius:12px;background:var(--panel2);color:var(--ink);text-align:center;user-select:text;-webkit-user-select:text}
 .netbox{width:100%;display:flex;flex-direction:column;gap:10px;border-top:3px solid var(--panel2);padding-top:10px}
 .netbox[hidden]{display:none}
-.wname{flex:1;min-width:0;text-align:right;font-family:var(--fd);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wname{width:100%;text-align:left;font-family:var(--fd);font-size:16px;overflow-wrap:anywhere;margin-top:-4px}
 .privacy{font-size:12px;color:var(--ink-soft);text-align:left;line-height:1.45}
 .privacy summary{cursor:pointer;color:var(--ink);font-size:13px}
 .privacy p{margin:6px 0 0}
@@ -492,7 +492,8 @@ a.btn{display:flex;align-items:center;justify-content:center;gap:10px;text-decor
   <div class="setrow musicrow"><span>Volume</span><input type="range" class="vol" id="setMusicVol" min="0" max="100" step="5" aria-label="Music volume"><b class="volv" id="setMusicVolV">25%</b></div>
   <p class="dbg-note" id="musicNote" hidden>Music plays in the web app and Android versions.</p>
   <div class="netbox" id="netBox">
-    <div class="setrow"><span>🌍 Name</span><b class="wname" id="wName">–</b><button class="btn small blue" id="wNameBtn">JOIN</button></div>
+    <div class="setrow"><span>🌍 World leaderboard</span><button class="btn small blue" id="wNameBtn">JOIN</button></div>
+    <div class="wname" id="wName">–</div>
     <div class="setrow" id="wDelRow"><span>Online scores</span><button class="btn small red" id="wDel">DELETE</button></div>
     <details class="privacy"><summary>Privacy note</summary>
       <p>The world leaderboard is optional. If you join, we store the name you choose, a random player ID, and for each game your score, level reached, play time and when it was set. We don’t ask for an email address, account or any contact details, and nothing is used for tracking or adverts.</p>
@@ -1052,7 +1053,7 @@ async function renderWorld(){
   else h+='<li class="wme"><button class="btn small green" id="wJoin">JOIN THE WORLD LEADERBOARD</button></li>';
   list.innerHTML=h;}
 function renderNet(){const on=Net.avail();$('netBox').hidden=!on;if(!on)return;
-  $('wName').textContent=Net.player?Net.player.name:'Not joined';$('wNameBtn').textContent=Net.player?'CHANGE':'JOIN';
+  $('wName').textContent=Net.player?'Playing as '+Net.player.name:'Not joined yet';$('wNameBtn').textContent=Net.player?'CHANGE':'JOIN';
   $('wDelRow').hidden=!Net.player;$('wDel').textContent='DELETE';clearTimeout(delArmed);delArmed=null;}
 function openName(from){nameFrom=from;$('nameIn').value=Net.player?Net.player.name:'';$('nameMsg').textContent='';showOv('ovName');
   setTimeout(()=>{try{$('nameIn').focus();}catch(e){}},60);}
