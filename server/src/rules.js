@@ -3,8 +3,15 @@ const RESERVED = ['admin', 'administrator', 'moderator', 'mod', 'colourbasher', 
 /* Name filter. Long, unambiguous words are blocked anywhere in a name; short ones only as whole words
    (so "Classic" or "Scunthorpe"-style names aren't caught). Extend as needed; moderators can also hide players. */
 const BLOCK_ANYWHERE = ['fuck', 'shit', 'cunt', 'bitch', 'bastard', 'wank', 'twat', 'pussy', 'slut', 'whore',
-  'nigg', 'fagg', 'retard', 'rapist', 'nazi', 'hitler', 'porn', 'penis', 'vagina', 'bollock', 'arsehole', 'asshole', 'bellend', 'tosser', 'spastic', 'paedo', 'pedo'];
-const BLOCK_WORDS = ['ass', 'arse', 'fag', 'cum', 'sex', 'tit', 'tits', 'piss', 'kkk', 'jizz', 'spaz', 'dick', 'dicks', 'cock', 'cocks', 'prick', 'pricks'];
+  'nigg', 'fagg', 'retard', 'rapist', 'nazi', 'hitler', 'porn', 'penis', 'vagina', 'bollock', 'arsehole', 'asshole', 'bellend', 'tosser', 'spastic', 'paedo', 'pedo',
+  // racist / hate terms that don't appear inside ordinary words
+  'niga', 'darkie', 'darky', 'golliwog', 'wetback', 'raghead', 'towelhead', 'jigaboo', 'redskin', 'chinaman', 'zipperhead', 'slanteye',
+  'siegheil', 'whitepower', 'whitepride', 'kukluxklan', 'heilhit', 'gaschamber', 'killjews', 'killblacks', 'killmuslims'];
+const BLOCK_WORDS = ['ass', 'arse', 'fag', 'cum', 'sex', 'tit', 'tits', 'piss', 'kkk', 'jizz', 'spaz', 'dick', 'dicks', 'cock', 'cocks', 'prick', 'pricks',
+  // racist / hate terms that are only blocked as whole words, because they appear inside innocent words or places
+  // (e.g. Pakistan, raccoon, tycoon, Montenegro, spicy, Japan, Wogan)
+  'paki', 'pakis', 'coon', 'coons', 'negro', 'negros', 'chink', 'chinks', 'gook', 'gooks', 'spic', 'spick', 'spics', 'kike', 'kikes', 'wog', 'wogs',
+  'jap', 'japs', 'sambo', 'gyppo', 'gypo', 'pikey', 'pikeys', 'honky', 'kraut', 'yid', 'yids', 'wop', 'wops', 'dago', 'beaner', 'beaners', 'tranny', 'nignog'];
 
 export function checkName(raw) {
   if (typeof raw !== 'string') return { error: 'name_invalid', message: 'Please enter a name.' };
@@ -14,7 +21,8 @@ export function checkName(raw) {
   if (!/[A-Za-z]/.test(name)) return { error: 'name_chars', message: 'Names need at least one letter.' };
   const key = name.toLowerCase().replace(/[ _-]+/g, '');
   const flat = key.replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't').replace(/8/g, 'b').replace(/[^a-z]/g, '');
-  const words = name.toLowerCase().replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').split(/[ _-]+|(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])/);
+  if (/(^|[^0-9])(1488|14 88)([^0-9]|$)/.test(name)) return { error: 'name_not_allowed', message: "That name isn't allowed – try another." };   // white-supremacist code
+  const words = name.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a').replace(/5/g, 's').split(/[ _-]+|(?<=[a-z])(?=[0-9])|(?<=[0-9])(?=[a-z])/);
   const squashed = flat.replace(/(.)\1+/g, '$1');   // catches stretched spellings like "fuuuck"
   if (BLOCK_ANYWHERE.some(w => flat.includes(w) || squashed.includes(w)) || words.some(w => BLOCK_WORDS.includes(w.replace(/[^a-z]/g, '')))) {
     return { error: 'name_not_allowed', message: "That name isn't allowed – try another." };

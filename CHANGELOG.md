@@ -9,7 +9,7 @@ The technical detail behind each release is in `CODE-CHANGES.md`.
 ### Added
 - **🌍 World leaderboard.** Records now has three tabs: **My times**, **My scores** and **🌍 World**.
   - World shows the **top 20 game scores** from all players, **all-time** and **this week** (weeks start on Monday), with your own position underneath even if you're not in the top 20.
-  - It's **optional**: tap **Join the world leaderboard** (or use Settings) and pick a name, 3–14 letters, numbers, spaces, `-` or `_`. Rude names, look-alikes of names already taken, and names like "admin" are refused. You can change your name at any time.
+  - It's **optional**: tap **Join the world leaderboard** (or use Settings) and pick a name, 3–14 letters, numbers, spaces, `-` or `_`. Rude, racist or hateful names (including disguised spellings), look-alikes of names already taken, and names like "admin" are refused. You can change your name at any time.
   - Each game's score is sent automatically after every level and bonus round. Only your best game counts towards your ranking.
   - If you're offline, scores wait on your phone and are sent when you're back online. Games played before you join are sent too (up to your last 20).
   - **Not counted:** debug games, and games where a hidden extra was used.
