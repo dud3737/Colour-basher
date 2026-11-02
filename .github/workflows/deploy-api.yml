@@ -48,13 +48,20 @@ jobs:
           l=$(curl -s -o /dev/null -w '%{http_code}' "$URL/v1/leaderboard?period=all")
           e=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://evil.example' -H 'Content-Type: application/json' -d '{"name":"Nope"}' $URL/v1/player)
           a=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://www.colourbasher.co.uk' -H 'Content-Type: application/json' -d '{"runId":"abcdefgh","score":10,"level":1,"playMs":9000}' $URL/v1/score)
-          SMOKE="health=$h board=$l other-site=$e no-login=$a"; echo "$SMOKE"; echo "SMOKE=$SMOKE" >> $GITHUB_ENV
-          [ "$h" = 200 ] && [ "$l" = 200 ] && [ "$e" = 403 ] && [ "$a" = 401 ]
+          f=$(curl -s -o /dev/null -w '%{http_code}' "$URL/v1/leaderboard?period=all&board=fastest")
+          d=$(curl -s $URL/v1/daily | jq -r 'if (.day and (has("seed")|not)) then "ok" else "bad" end')
+          ds=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Origin: https://www.colourbasher.co.uk' -H 'Content-Type: application/json' -d '{}' $URL/v1/daily/start)
+          SMOKE="health=$h board=$l fastest=$f daily=$d daily-start-no-login=$ds other-site=$e no-login=$a"; echo "$SMOKE"; echo "SMOKE=$SMOKE" >> $GITHUB_ENV
+          [ "$h" = 200 ] && [ "$l" = 200 ] && [ "$f" = 200 ] && [ "$d" = ok ] && [ "$ds" = 401 ] && [ "$e" = 403 ] && [ "$a" = 401 ]
       - name: Publish the API address
         if: always() && env.URL != ''
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=success -f context=leaderboard-api -f description="$URL" -f target_url="$URL/v1/health" >/dev/null
-          gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=${{ job.status == 'success' && 'success' || 'failure' }} -f context=smoke-tests -f description="${SMOKE:-not run}" >/dev/null
+          for i in 1 2 3; do
+            gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=success -f context=leaderboard-api -f description="$URL" -f target_url="$URL/v1/health" >/dev/null &&
+            gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=${{ job.status == 'success' && 'success' || 'failure' }} -f context=smoke-tests -f description="${SMOKE:-not run}" >/dev/null && break
+            sleep 5
+          done
           echo "API live at $URL"
