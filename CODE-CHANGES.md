@@ -60,6 +60,8 @@ Exact diff (game file): `versions/diffs/2.2.0-to-2.3.0.diff`
 
 **Deploy order:** server first (the new tables are created by migration 0003), then the game.
 
+**Deploy workflow:** the live smoke tests now also check the Fastest board (200), that `/v1/daily` answers without revealing a seed, and that a daily start without login is refused (401). Posting the API address as a commit status now retries and can't fail the run. The first 2.3.0 deploy succeeded but was marked failed because that status note couldn't be posted.
+
 ### Tested
 
 - **Server (local Worker + D1):**
