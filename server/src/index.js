@@ -4,8 +4,8 @@
      POST   /v1/player            {name}                 -> {name, token}     (join; token = "<id>.<secret>")
      PUT    /v1/player            {name}   [auth]        -> {name}            (rename)
      DELETE /v1/player                     [auth]        -> {deleted:true}    (delete player + all scores)
-     POST   /v1/score             {runId, score, level, playMs} [auth] -> {ok, best}
-     GET    /v1/leaderboard?period=all|week  [auth optional]  -> {period, week, top[], me}
+     POST   /v1/score             {runId, score, level, playMs, levelTimes?:[{level,ms}]} [auth] -> {ok, best, rank:{all,week}}
+     GET    /v1/leaderboard?period=all|week&board=points|fastest  [auth optional]  -> {period, week, board, top[], me}
    Security: the server re-checks everything (the game runs on players' phones and can be tampered with).
    Privacy: stores chosen name, random id, a HASH of the secret token, scores + times. Connection addresses are
    only used as a salted, daily-rotating hash inside short-lived rate-limit keys. */
@@ -53,9 +53,10 @@ export default {
       if (path === '/v1/leaderboard' && req.method === 'GET') {
         if (await limited(env, 'read', ip)) return fail(429, 'slow_down', 'Too many requests – try again in a minute.');
         const period = url.searchParams.get('period') === 'week' ? 'week' : 'all';
+        const board = url.searchParams.get('board') === 'fastest' ? 'fastest' : 'points';
         const week = isoWeek(now);
         const me = await authPlayer(env, req);
-        return json(200, await leaderboard(env, period === 'week' ? week : null, me, period, week));
+        return json(200, await leaderboard(env, board, period === 'week' ? week : null, me, period, week));
       }
 
       if (path === '/v1/player' && req.method === 'POST') {
@@ -76,6 +77,7 @@ export default {
         if (req.method === 'DELETE') {
           await env.DB.batch([
             env.DB.prepare('DELETE FROM scores WHERE player_id = ?').bind(me.id),
+            env.DB.prepare('DELETE FROM level_times WHERE player_id = ?').bind(me.id),
             env.DB.prepare('DELETE FROM players WHERE id = ?').bind(me.id),
           ]);
           return json(200, { deleted: true });
@@ -102,8 +104,14 @@ export default {
           await env.DB.prepare('INSERT INTO scores (player_id, run_id, score, level, play_ms, week, created, updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
             .bind(me.id, c.runId, c.score, c.level, c.playMs, isoWeek(now), now, now).run();
         }
+        if (c.times.length) {   // each level's time is recorded once per game and never changed afterwards
+          await env.DB.batch(c.times.map(t => env.DB.prepare(
+            'INSERT INTO level_times (player_id, run_id, level, ms, week, created) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (player_id, run_id, level) DO NOTHING'
+          ).bind(me.id, c.runId, t.level, t.ms, isoWeek(now), now)));
+        }
         const best = await env.DB.prepare('SELECT MAX(score) AS best FROM scores WHERE player_id = ?').bind(me.id).first();
-        return json(200, { ok: true, best: best ? best.best : c.score });
+        const all = await myRank(env, 'points', null, me), wk = await myRank(env, 'points', isoWeek(now), me);
+        return json(200, { ok: true, best: best ? best.best : c.score, rank: { all: all && all.rank, week: wk && wk.rank, hidden: !!me.hidden } });
       }
 
       return fail(404, 'not_found', 'Not found.');
@@ -114,26 +122,40 @@ export default {
 };
 
 /* ---------- data ---------- */
-async function leaderboard(env, weekOrNull, me, period, week) {
-  const best = `WITH best AS (
-      SELECT s.player_id, s.score, s.level, s.created,
-             ROW_NUMBER() OVER (PARTITION BY s.player_id ORDER BY s.score DESC, s.created ASC) AS rn
-      FROM scores s JOIN players p ON p.id = s.player_id
-      WHERE p.hidden = 0 AND (?1 IS NULL OR s.week = ?1))`;
-  const top = await env.DB.prepare(`${best}
-      SELECT b.player_id, p.name, b.score, b.level FROM best b JOIN players p ON p.id = b.player_id
-      WHERE b.rn = 1 ORDER BY b.score DESC, b.created ASC LIMIT 20`).bind(weekOrNull).all();
-  const rows = (top.results || []).map((r, i) => ({ rank: i + 1, name: r.name, score: r.score, level: r.level, me: !!(me && r.player_id === me.id) }));
+/* Each player's best entry per board: highest game score ('points') or quickest single level ('fastest'). */
+function bestCte(board) {
+  return board === 'fastest'
+    ? `WITH best AS (
+        SELECT t.player_id, t.ms AS value, t.level, t.created,
+               ROW_NUMBER() OVER (PARTITION BY t.player_id ORDER BY t.ms ASC, t.created ASC) AS rn
+        FROM level_times t JOIN players p ON p.id = t.player_id
+        WHERE p.hidden = 0 AND (?1 IS NULL OR t.week = ?1))`
+    : `WITH best AS (
+        SELECT s.player_id, s.score AS value, s.level, s.created,
+               ROW_NUMBER() OVER (PARTITION BY s.player_id ORDER BY s.score DESC, s.created ASC) AS rn
+        FROM scores s JOIN players p ON p.id = s.player_id
+        WHERE p.hidden = 0 AND (?1 IS NULL OR s.week = ?1))`;
+}
+async function myRank(env, board, weekOrNull, me) {
+  const row = await env.DB.prepare(`${bestCte(board)} SELECT value, level, created FROM best WHERE rn = 1 AND player_id = ?2`).bind(weekOrNull, me.id).first();
+  if (!row) return null;
+  const better = board === 'fastest' ? '(value < ?2 OR (value = ?2 AND created < ?3))' : '(value > ?2 OR (value = ?2 AND created < ?3))';
+  const ahead = await env.DB.prepare(`${bestCte(board)} SELECT COUNT(*) AS n FROM best WHERE rn = 1 AND ${better}`).bind(weekOrNull, row.value, row.created).first();
+  return { rank: me.hidden ? null : (ahead ? ahead.n : 0) + 1, value: row.value, level: row.level };
+}
+async function leaderboard(env, board, weekOrNull, me, period, week) {
+  const order = board === 'fastest' ? 'b.value ASC' : 'b.value DESC';
+  const top = await env.DB.prepare(`${bestCte(board)}
+      SELECT b.player_id, p.name, b.value, b.level FROM best b JOIN players p ON p.id = b.player_id
+      WHERE b.rn = 1 ORDER BY ${order}, b.created ASC LIMIT 20`).bind(weekOrNull).all();
+  const key = board === 'fastest' ? 'ms' : 'score';
+  const rows = (top.results || []).map((r, i) => ({ rank: i + 1, name: r.name, [key]: r.value, level: r.level, me: !!(me && r.player_id === me.id) }));
   let mine = null;
   if (me) {
-    const row = await env.DB.prepare(`${best} SELECT score, level, created FROM best WHERE rn = 1 AND player_id = ?2`).bind(weekOrNull, me.id).first();
-    if (row) {
-      const ahead = await env.DB.prepare(`${best} SELECT COUNT(*) AS n FROM best WHERE rn = 1 AND (score > ?2 OR (score = ?2 AND created < ?3))`)
-        .bind(weekOrNull, row.score, row.created).first();
-      mine = { name: me.name, rank: (ahead ? ahead.n : 0) + 1, score: row.score, level: row.level, hidden: !!me.hidden };
-    } else mine = { name: me.name, rank: null, score: null, level: null, hidden: !!me.hidden };
+    const m = await myRank(env, board, weekOrNull, me);
+    mine = { name: me.name, rank: m ? m.rank : null, [key]: m ? m.value : null, level: m ? m.level : null, hidden: !!me.hidden };
   }
-  return { period, week, top: rows, me: mine };
+  return { period, week, board, top: rows, me: mine };
 }
 
 async function authPlayer(env, req) {
