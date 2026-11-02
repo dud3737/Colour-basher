@@ -68,3 +68,31 @@ export function isoWeek(ms) {   // ISO-8601 week (UTC), e.g. "2026-W44"
   const w = 1 + Math.round(((th - jan4) / 864e5 - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7);
   return `${y}-W${String(w).padStart(2, '0')}`;
 }
+
+/* ---------- Grid of the Day ---------- */
+export const DAILY_MIN_RAW_MS = 6000;     // 64 deliberate taps, no star block, no power-ups: nothing faster is humanly possible
+export const DAILY_PENALTY_MS = 5000;     // per wrong tap
+export const DAILY_MAX_MS = 30 * 60 * 1000;
+/* UK calendar date (Europe/London) for a moment in time, e.g. "2026-11-01" */
+export function ukDay(ms) {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(ms));
+  const g = t => p.find(x => x.type === t).value;
+  return `${g('year')}-${g('month')}-${g('day')}`;
+}
+/* milliseconds until the next UK midnight (handles GMT/BST) */
+export function msToUkMidnight(ms) {
+  const today = ukDay(ms);
+  let lo = ms, hi = ms + 26 * 3600 * 1000;           // binary search for the first moment that is "tomorrow" in the UK
+  while (hi - lo > 1000) { const mid = Math.floor((lo + hi) / 2); if (ukDay(mid) === today) lo = mid; else hi = mid; }
+  return hi - ms;
+}
+export function checkDailyFinish(b, attempt, now) {
+  const { ms, wrong } = b || {};
+  if (!Number.isInteger(wrong) || wrong < 0 || wrong > 500) return { error: 'bad_wrong' };
+  if (!Number.isInteger(ms) || ms > DAILY_MAX_MS) return { error: 'bad_time' };
+  const raw = ms - wrong * DAILY_PENALTY_MS;                    // time actually spent clearing the grid
+  if (raw < DAILY_MIN_RAW_MS) return { error: 'too_fast' };
+  if (raw > now - attempt.started + 3000) return { error: 'time_mismatch' };   // can't claim more play time than really passed since the go started
+  if (now - attempt.started > DAILY_MAX_MS) return { error: 'too_late' };
+  return { ms, wrong };
+}

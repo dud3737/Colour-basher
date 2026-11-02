@@ -26,6 +26,62 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 2.3.0 – 2026-11-01 (BETA): Grid of the Day
+
+Exact diff (game file): `versions/diffs/2.2.0-to-2.3.0.diff`
+
+### Server
+
+| Area | Where | Change |
+|---|---|---|
+| Database | `server/migrations/0003_daily.sql` | **New** `daily` table (UK day → random seed, created on the first start of the day), and `daily_attempts` (player + day primary key: `started`, `finished`, `ms` including penalties, `wrong`) with a board index. |
+| Rules | `rules.js` | `ukDay(ms)`: the UK date via `Intl` with `Europe/London`, covering GMT and BST. `msToUkMidnight(ms)`: a binary search for the next UK midnight, so clock-change nights work. `checkDailyFinish()`: `wrong` must be 0–500. Real play time (`ms − 5000 × wrong`) must be at least **6,000 ms** (64 deliberate taps, no star or power-ups) and no more than the server time actually elapsed since the start plus 3 s. A go must finish within 30 minutes. |
+| API | `GET /v1/daily?day=today\|yesterday` | Returns `{day, today, secondsLeft, players, top[20] {name, ms, wrong}, me {status: none\|started\|done, ms, wrong, rank}}`. It **never** includes the seed. "Yesterday" = 3 h before the start of today, safe on 23 h and 25 h days. |
+| API | `POST /v1/daily/start` | Requires login. Refuses a second go (409, started or done). Creates the day's seed if needed, records the server start time, and **only then** returns `{day, seed}`. |
+| API | `POST /v1/daily/finish {day, ms, wrong}` | Requires login. Needs an unfinished go for that day (409 otherwise), then the checks above (422). Stores the result and returns the rank (ties go to whoever finished first). |
+| API | `DELETE /v1/player` | Also deletes `daily_attempts`. |
+| Tests | `test/rules.test.mjs` | UK days in GMT and BST, minutes to midnight, "yesterday" across both 2026 clock changes, and finish checks (valid, too fast, too fast once penalties are removed, more time claimed than had passed, bad wrong-tap count). |
+
+### Game
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `rng(seed)`, `dailyGrid(seed)` | A seeded mulberry32 generator gives every phone the identical grid (all 7 colours guaranteed) and colour order. |
+| HTML/JS | `#daily` screen | Title, date, countdown (`dTick`, re-fetches at midnight), status card (`renderDaily`: join / rules + PLAY / your result and rank / unfinished / waiting to send), TODAY / YESTERDAY selector and board (✗ wrong taps). |
+| JS | `playDaily()` / `startDaily(day, seed)` | Calls `Music.prime()` inside the tap, then `POST /start`, then sets up a level with `G.daily`: no items, shuffles, power-ups or restart; level box shows "DAILY 📅"; hearts and score hidden. The intro reads "GRID OF THE DAY / ONE GO · WRONG TAP = +5s". |
+| JS | `tap()` | Daily mode: a wrong tap adds `penalty += 5000` and `wrong++`, with a "+5s" pop-up and the usual ouch effects, but no heart loss. |
+| JS | Main loop | The daily timer shows `elapsed + penalty`. |
+| JS | `win()` → `dailyEnd()` | Shows DONE!, the date, total time, a tally (clear time / wrong taps / total) and a badge. Stores `cb_daily_pending` and sends it via `Net.dailyFlush()`, which returns the rank, `false` when offline, or `null`. The rank line reads "🌍 #N today" or "will be sent when you're back online". The Next button becomes TODAY'S BOARD. |
+| JS | `Net` | `daily()`, `dailyStart()`, `dailyFlush()` (keeps the result until it's recorded or refused). `flush()` also retries a pending daily result. |
+| JS | `setMode()`, `puActive()`, `pause()`, `cbBack()`, `closeName()`, `showScreen()` | Daily mode is cleared for normal and bonus games. No power-ups in daily. Pause info reads "Grid of the Day · Xs · quitting ends your one go", and a missing score no longer breaks pausing (`G.score \|\| 0`). Android back leaves the daily screen. Joining can start from the daily screen. The countdown stops when you leave it. |
+| CSS | `#daily …`, `#game.daily …`, short-screen media query | Daily screen styling, hidden hearts and score in daily games, and a more compact home screen under 700 px tall. |
+| JS | `VERSION` | `'2.2.0'` → `'2.3.0'` |
+| Android | `app/build.gradle.kts` | `versionCode` 36 → 37, `versionName` "2.2.0-beta" → "2.3.0-beta". |
+
+**Deploy order:** server first (the new tables are created by migration 0003), then the game.
+
+### Tested
+
+- **Server (local Worker + D1):**
+  - The board never reveals the seed, and two players starting got the same seed.
+  - A second start was refused (409).
+  - A 7 s finish sent immediately after starting was refused (`time_mismatch`).
+  - Legitimate finishes were accepted and ranked, with ties going to whoever finished first. Re-submitting (409), finishing a day never started (409) and starting without login (401) were all refused.
+  - "Yesterday" and deletion worked.
+- **End to end (four browser players against a local Worker):**
+  - The home screen fits at 360×640, 375×667, 390×780 and 412×915.
+  - **Not joined:** the daily screen showed the rules and JOIN TO PLAY. After joining, PLAY appeared and the countdown ran.
+  - **During play:** the level box showed DAILY and the hearts were hidden. One wrong tap moved the timer straight to 6.1 s (+5 s).
+  - **Results:** "DONE!", 20.76 s = 15.76 s clear + 5 s penalty, "🌍 #1 today" and a TODAY'S BOARD button. The board then showed the result and the PLAY button was gone.
+  - **Same grid:** a second player got an identical grid and a clean run showed "★ NO MISTAKES ★".
+  - **Quitting:** pausing showed the daily warning with Restart hidden; quitting gave "started but didn't finish".
+  - **Offline finish:** "will be sent when you're back online", then recorded as "#1 of 3" once back online.
+  - **Yesterday:** "Nobody played yesterday".
+  - **Afterwards:** a normal game showed LEVEL 1 with hearts, Next Level and Motivation, and the world rank.
+  - No policy violations and no page errors.
+
+---
+
 ## 2.2.0 – 2026-11-01 (BETA): fastest-level board and world rank on the results screen
 
 Exact diff (game file): `versions/diffs/2.1.0-to-2.2.0.diff`

@@ -6,11 +6,14 @@
      DELETE /v1/player                     [auth]        -> {deleted:true}    (delete player + all scores)
      POST   /v1/score             {runId, score, level, playMs, levelTimes?:[{level,ms}]} [auth] -> {ok, best, rank:{all,week}}
      GET    /v1/leaderboard?period=all|week&board=points|fastest  [auth optional]  -> {period, week, board, top[], me}
+     GET    /v1/daily?day=today|yesterday   [auth optional]  -> {day, secondsLeft, top[], me:{status, ms, wrong, rank}}
+     POST   /v1/daily/start                 [auth]           -> {day, seed}      (uses the player's one official go)
+     POST   /v1/daily/finish  {day, ms, wrong}  [auth]       -> {ok, rank}
    Security: the server re-checks everything (the game runs on players' phones and can be tampered with).
    Privacy: stores chosen name, random id, a HASH of the secret token, scores + times. Connection addresses are
    only used as a salted, daily-rotating hash inside short-lived rate-limit keys. */
 
-import { checkName, checkScore, isoWeek } from './rules.js';
+import { checkName, checkScore, isoWeek, ukDay, msToUkMidnight, checkDailyFinish } from './rules.js';
 
 const ORIGINS = ['https://www.colourbasher.co.uk', 'https://colourbasher.co.uk'];
 const LIMITS = {               // per hashed connection, per window (seconds)
@@ -78,6 +81,7 @@ export default {
           await env.DB.batch([
             env.DB.prepare('DELETE FROM scores WHERE player_id = ?').bind(me.id),
             env.DB.prepare('DELETE FROM level_times WHERE player_id = ?').bind(me.id),
+            env.DB.prepare('DELETE FROM daily_attempts WHERE player_id = ?').bind(me.id),
             env.DB.prepare('DELETE FROM players WHERE id = ?').bind(me.id),
           ]);
           return json(200, { deleted: true });
@@ -112,6 +116,38 @@ export default {
         const best = await env.DB.prepare('SELECT MAX(score) AS best FROM scores WHERE player_id = ?').bind(me.id).first();
         const all = await myRank(env, 'points', null, me), wk = await myRank(env, 'points', isoWeek(now), me);
         return json(200, { ok: true, best: best ? best.best : c.score, rank: { all: all && all.rank, week: wk && wk.rank, hidden: !!me.hidden } });
+      }
+
+      /* ---------- Grid of the Day ---------- */
+      if (path === '/v1/daily' && req.method === 'GET') {
+        if (await limited(env, 'read', ip)) return fail(429, 'slow_down', 'Too many requests – try again in a minute.');
+        const today = ukDay(now), day = url.searchParams.get('day') === 'yesterday' ? ukDay(now + msToUkMidnight(now) - 27 * 3600 * 1000) : today;   // 3 h before the start of today (safe on 23/25-hour clock-change days)
+        const me = await authPlayer(env, req);
+        return json(200, { day, today, secondsLeft: Math.ceil(msToUkMidnight(now) / 1000), ...(await dailyBoard(env, day, me)) });
+      }
+      if (path === '/v1/daily/start' && req.method === 'POST') {
+        if (await limited(env, 'write', ip)) return fail(429, 'slow_down', 'Too many requests – try again in a minute.');
+        const me = await authPlayer(env, req); if (!me) return fail(401, 'auth', 'Please join again.');
+        const day = ukDay(now);
+        const prev = await env.DB.prepare('SELECT finished FROM daily_attempts WHERE player_id = ? AND day = ?').bind(me.id, day).first();
+        if (prev) return fail(409, 'already_played', prev.finished ? "You've already played today's grid." : "You've already started today's grid.");
+        await env.DB.prepare('INSERT INTO daily (day, seed, created) VALUES (?, ?, ?) ON CONFLICT (day) DO NOTHING')
+          .bind(day, crypto.getRandomValues(new Uint32Array(1))[0] >>> 1, now).run();
+        const d = await env.DB.prepare('SELECT seed FROM daily WHERE day = ?').bind(day).first();
+        await env.DB.prepare('INSERT INTO daily_attempts (player_id, day, started) VALUES (?, ?, ?)').bind(me.id, day, now).run();
+        return json(200, { day, seed: d.seed });   // the grid is only ever revealed to a player as their official go starts
+      }
+      if (path === '/v1/daily/finish' && req.method === 'POST') {
+        if (await limited(env, 'write', ip)) return fail(429, 'slow_down', 'Too many requests – try again in a minute.');
+        const me = await authPlayer(env, req); if (!me) return fail(401, 'auth', 'Please join again.');
+        const b = await readJson(req); if (!b || typeof b.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b.day)) return fail(400, 'bad_request', 'Bad request.');
+        const a = await env.DB.prepare('SELECT started, finished FROM daily_attempts WHERE player_id = ? AND day = ?').bind(me.id, b.day).first();
+        if (!a) return fail(409, 'not_started', 'No go was started for that day.');
+        if (a.finished) return fail(409, 'already_finished', 'That go has already been recorded.');
+        const c = checkDailyFinish(b, a, now); if (c.error) return fail(422, c.error, 'Time not accepted.');
+        await env.DB.prepare('UPDATE daily_attempts SET finished = ?, ms = ?, wrong = ? WHERE player_id = ? AND day = ?').bind(now, c.ms, c.wrong, me.id, b.day).run();
+        const r = await dailyRank(env, b.day, me);
+        return json(200, { ok: true, day: b.day, rank: r });
       }
 
       return fail(404, 'not_found', 'Not found.');
@@ -156,6 +192,27 @@ async function leaderboard(env, board, weekOrNull, me, period, week) {
     mine = { name: me.name, rank: m ? m.rank : null, [key]: m ? m.value : null, level: m ? m.level : null, hidden: !!me.hidden };
   }
   return { period, week, board, top: rows, me: mine };
+}
+
+async function dailyRank(env, day, me) {
+  if (me.hidden) return null;
+  const row = await env.DB.prepare('SELECT ms, finished FROM daily_attempts WHERE player_id = ? AND day = ? AND ms IS NOT NULL').bind(me.id, day).first();
+  if (!row) return null;
+  const ahead = await env.DB.prepare(`SELECT COUNT(*) AS n FROM daily_attempts a JOIN players p ON p.id = a.player_id
+      WHERE a.day = ?1 AND a.ms IS NOT NULL AND p.hidden = 0 AND (a.ms < ?2 OR (a.ms = ?2 AND a.finished < ?3))`).bind(day, row.ms, row.finished).first();
+  return (ahead ? ahead.n : 0) + 1;
+}
+async function dailyBoard(env, day, me) {
+  const top = await env.DB.prepare(`SELECT a.player_id, p.name, a.ms, a.wrong FROM daily_attempts a JOIN players p ON p.id = a.player_id
+      WHERE a.day = ? AND a.ms IS NOT NULL AND p.hidden = 0 ORDER BY a.ms ASC, a.finished ASC LIMIT 20`).bind(day).all();
+  const played = await env.DB.prepare('SELECT COUNT(*) AS n FROM daily_attempts WHERE day = ? AND ms IS NOT NULL').bind(day).first();
+  const rows = (top.results || []).map((r, i) => ({ rank: i + 1, name: r.name, ms: r.ms, wrong: r.wrong, me: !!(me && r.player_id === me.id) }));
+  let mine = null;
+  if (me) {
+    const a = await env.DB.prepare('SELECT ms, wrong, finished FROM daily_attempts WHERE player_id = ? AND day = ?').bind(me.id, day).first();
+    mine = { name: me.name, status: !a ? 'none' : (a.finished ? 'done' : 'started'), ms: a ? a.ms : null, wrong: a ? a.wrong : null, rank: a && a.finished ? await dailyRank(env, day, me) : null };
+  }
+  return { players: played ? played.n : 0, top: rows, me: mine };
 }
 
 async function authPlayer(env, req) {

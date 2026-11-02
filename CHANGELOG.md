@@ -4,6 +4,20 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.3.0] – 2026-11-01 – BETA
+
+### Added
+- **📅 Grid of the Day:** a daily challenge, with its own button on the home screen.
+  - **Same grid for everyone each day:** the same colours, colour order and layout, with no shuffles, star blocks, hidden extras or power-ups. Pure speed.
+  - **One official go per day,** like Wordle. Starting uses your go, and quitting part-way counts as not finished.
+  - **Wrong tap = +5 seconds** instead of losing a heart, so everyone finishes. Fastest total time wins.
+  - **New grid at midnight UK time.** The screen shows the date, a countdown to the next grid, your result and rank, and **Today** / **Yesterday** top-20 boards, with wrong taps shown as ✗.
+  - **Results screen:** your clear time, wrong-tap penalties, total time and **"🌍 #N today"**.
+  - **Joining required:** you need to join the world leaderboard to play, since the day's grid is only revealed as your official go starts, so nobody can study it first. If you finish offline, your time is sent when you're back online.
+
+### Changed
+- On shorter phones the home-screen buttons and tips are slightly more compact, so everything still fits with the new button.
+
 ## [2.2.0] – 2026-11-01 – BETA
 
 ### Added
