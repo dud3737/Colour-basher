@@ -19,4 +19,11 @@ assert.equal(checkScore({ runId: 'abcdef12-1', score: 5000, level: 3, playMs: 50
 assert.equal(checkScore({ runId: "x'; drop", score: 10, level: 1, playMs: 9000 }).error, 'bad_run');
 assert.equal(isoWeek(Date.UTC(2026, 10, 1)), '2026-W44');
 assert.equal(isoWeek(Date.UTC(2024, 11, 30)), '2025-W01');
+// level times (fastest-level board)
+assert.deepEqual(checkScore({ runId: 'abcdef12-1', score: 9000, level: 2, playMs: 70000, levelTimes: [{ level: 1, ms: 31000 }, { level: 2, ms: 38000 }] }).times, [{ level: 1, ms: 31000 }, { level: 2, ms: 38000 }]);
+assert.equal(checkScore({ runId: 'abcdef12-1', score: 9000, level: 2, playMs: 70000, levelTimes: [{ level: 3, ms: 31000 }] }).error, 'bad_level_times');   // level not reached
+assert.equal(checkScore({ runId: 'abcdef12-1', score: 9000, level: 2, playMs: 70000, levelTimes: [{ level: 1, ms: 2500 }] }).error, 'bad_level_times');    // impossibly fast
+assert.equal(checkScore({ runId: 'abcdef12-1', score: 9000, level: 2, playMs: 70000, levelTimes: [{ level: 1, ms: 90000 }] }).error, 'bad_level_times');   // longer than the whole game
+assert.equal(checkScore({ runId: 'abcdef12-1', score: 9000, level: 2, playMs: 70000, levelTimes: 'x' }).error, 'bad_level_times');
+assert.deepEqual(checkScore({ runId: 'abcdef12-1', score: 9000, level: 2, playMs: 70000 }).times, []);
 console.log('rules: all tests passed');

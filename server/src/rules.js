@@ -35,7 +35,10 @@ export function checkName(raw) {
    a level is at most ~2,560 (64 blocks × 10 × ×4 combo) + 700 colours + power-ups/hearts + 900 time + 1,000 lives
    + 250 × level, and a bonus round at most ~3,500. Anything above this is not humanly possible. */
 export const maxScore = level => 8000 * level + 125 * level * (level + 1);
-export const MIN_MS_PER_LEVEL = 4000;   // 64 deliberate taps + countdown-free play time can't be faster than this
+export const MIN_MS_PER_LEVEL = 4000;
+/* Fastest single level: with a star block plus up to 3 star power-ups (level 7+) a few colours can go in one tap each,
+   but the rest still need ~30 deliberate taps, so nothing under 3 s is humanly possible. */
+export const MIN_LEVEL_MS = 3000;   // 64 deliberate taps + countdown-free play time can't be faster than this
 
 export function checkScore(b) {
   const runId = b.runId, score = b.score, level = b.level, playMs = b.playMs;
@@ -44,7 +47,18 @@ export function checkScore(b) {
   if (!Number.isInteger(score) || score < 0 || score % 10 !== 0) return { error: 'bad_score' };
   if (score > maxScore(level)) return { error: 'too_high' };
   if (!Number.isInteger(playMs) || playMs < level * MIN_MS_PER_LEVEL || playMs > 6 * 3600 * 1000) return { error: 'bad_time' };
-  return { runId, score, level, playMs };
+  // optional: times of individual completed levels in this game (fastest-level board)
+  const times = [];
+  if (b.levelTimes !== undefined) {
+    if (!Array.isArray(b.levelTimes) || b.levelTimes.length > 60) return { error: 'bad_level_times' };
+    for (const t of b.levelTimes) {
+      if (!t || !Number.isInteger(t.level) || !Number.isInteger(t.ms)) return { error: 'bad_level_times' };
+      if (t.level < 1 || t.level > level) return { error: 'bad_level_times' };                       // can't have finished a level you haven't reached
+      if (t.ms < MIN_LEVEL_MS || t.ms > 30 * 60 * 1000 || t.ms > playMs) return { error: 'bad_level_times' };
+      times.push({ level: t.level, ms: t.ms });
+    }
+  }
+  return { runId, score, level, playMs, times };
 }
 
 export function isoWeek(ms) {   // ISO-8601 week (UTC), e.g. "2026-W44"

@@ -26,6 +26,57 @@ Releases before 1.2.1 weren't snapshotted separately, so their entries below lis
 
 ---
 
+## 2.2.0 – 2026-11-01 (BETA): fastest-level board and world rank on the results screen
+
+Exact diff (game file): `versions/diffs/2.1.0-to-2.2.0.diff`
+
+### Server
+
+| Area | Where | Change |
+|---|---|---|
+| Database | `server/migrations/0002_level_times.sql` | **New** `level_times` table (player, run, level, ms, week, created), unique per player + run + level, with indexes. |
+| Rules | `rules.js` → `checkScore()` | Optional `levelTimes: [{level, ms}]` (up to 60). Each level must be 1 to the current level; `ms` must be at least **3,000** (`MIN_LEVEL_MS`), at most 30 min, and no longer than the whole game's `playMs`. An invalid entry refuses the whole request. |
+| API | `POST /v1/score` | Stores level times once per player + run + level (`ON CONFLICT DO NOTHING`), so a time can never be lowered after it's recorded. The response adds `rank: {all, week, hidden}`: the player's best-ever and this-week positions on the points board. |
+| API | `GET /v1/leaderboard` | New `board=points\|fastest`. The shared `bestCte(board)` picks each player's best (highest score, or lowest ms), and `myRank()` handles your own row. Fastest rows return `ms` and level. |
+| API | `DELETE /v1/player` | Also deletes the player's `level_times`. |
+| Tests | `test/rules.test.mjs` | Level-time cases: valid, level not reached, under 3 s, longer than the game, wrong type, absent. |
+
+### Game
+
+| Area | Where | Change |
+|---|---|---|
+| JS | `bankScore(levelMs)` / `win()` | The level's clock time (`t`, from GO to the last block) goes with the score. Bonus rounds send none. |
+| JS | `Net.queue()` | Keeps `lv: {level → ms}` per pending game (times under 3 s are never sent), so times for several levels survive being offline. |
+| JS | `Net.flush()` | Sends `levelTimes`. After each response it only removes the pending entry if it wasn't updated while sending (fixes a race that could lose the latest level), and re-sends straight away if more arrived. It reports the rank (or "offline") for the game on screen via `waitRank` / `rankLine()`; a refused score hides the line. |
+| HTML/JS | Results screen | **New** `#winWorld` line under the badge. `showWorldRank()` shows "Checking…", the join button, or nothing (debug / ⚡ / not available). `rankLine(rank)` shows "🌍 #N in the world · #M this week" or the offline message. Joining from there (`openName('win')`) returns to the results screen and fills in the rank as soon as the game is sent. |
+| HTML/JS | World tab | Two selectors, POINTS / FASTEST LEVEL and ALL-TIME / THIS WEEK (`worldBoard`, `worldPeriod`). Fastest rows show `12.34s` and the level; your line shows rank, time and level. |
+| JS | `VERSION` | `'2.1.0'` → `'2.2.0'` |
+| Android | `app/build.gradle.kts` | `versionCode` 35 → 36, `versionName` "2.1.0-beta" → "2.2.0-beta". |
+
+**Deploy order:** server first, then the game. The new game expects the rank in the server's response.
+
+**Housekeeping note:** an earlier, interrupted attempt at this feature had left half-finished edits in the workspace: a different `levels` table design, and partial changes in the game file and the Claude-hosted page. The live site and the deployed server were never affected. Everything was reset to the clean, live v2.1.0 from the GitHub backup and rebuilt from scratch.
+
+### Tested
+
+- **Server (local Worker + D1):**
+  - Level times were stored and every response included a rank.
+  - A second player taking the top spot shifted the first player to #2.
+  - Level times under 3 s, or for a level not yet reached, were refused (422).
+  - Re-sending a faster time for an already-recorded level didn't change it.
+  - All four board and period combinations returned the correct order, levels and your own row.
+  - Deleting a player removed their level times.
+- **End to end (browser + local Worker):**
+  - A player who hadn't joined saw "🌍 JOIN TO GET A WORLD RANK", joined from the results screen, was returned there, and saw "🌍 #1 in the world · #1 this week".
+  - Level 2 recorded both level times on the server.
+  - A second player saw "#2 in the world · #2 this week".
+  - The Fastest Level board listed both players with times and levels, and the Points board was correct.
+  - Winning while offline showed the "update when back online" message.
+  - A debug game showed no line.
+  - No policy violations and no page errors.
+
+---
+
 ## 2.1.0 – 2026-11-01 (BETA): world leaderboard
 
 Exact diff (game file): `versions/diffs/2.0.6-to-2.1.0.diff`

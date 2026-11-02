@@ -1,0 +1,158 @@
+--- colour-basher-2.1.0.html
++++ colour-basher-2.2.0.html
+@@ -185,6 +185,10 @@
+ .recpanel.sc .rechead,.recpanel.sc .recrow{grid-template-columns:40px 1fr 60px 78px}
+ /* world leaderboard */
+ .recpanel.wd .rechead{display:flex;justify-content:center;border-bottom:3px solid var(--edge)}
++.wsegs{display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:6px}
++.wrank{font-size:15px;min-height:1.2em}
++.wrank b{font-family:var(--fd);color:var(--score)}
++.wrank .btn{min-width:0;font-size:14px;padding:8px 14px}
+ .recpanel.wd .recrow{grid-template-columns:40px 1fr 84px 40px}
+ .recrow .wn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .recrow .lv{font-size:12px;color:var(--ink-soft);text-align:right}
+@@ -451,6 +455,7 @@
+   <div class="tally" id="winTally"></div>
+   <div class="minihearts" id="winHearts"></div>
+   <div class="badge" id="winBadge"></div>
++  <div class="wrank" id="winWorld"></div>
+   <div class="btncol">
+     <button class="btn green" id="nextBtn">NEXT LEVEL</button>
+     <button class="btn pink" id="motivBtn">MOTIVATION</button>
+@@ -527,7 +532,7 @@
+   {name:'PURPLE',c:'#9a46ff',l:'#d2abff',d:'#5a1ab5'},
+   {name:'PINK',  c:'#ff5fc8',l:'#ffb8e8',d:'#bd1d87'}
+ ];
+-const VERSION='2.1.0';
++const VERSION='2.2.0';
+ const BONUS_EVERY=3, BONUS_MS=10000;   // bonus round after every 3rd level, 10 s to clear it
+ const bonusTime=size=>size>=7?15000:BONUS_MS; // 7×7 bonus rounds get 15 s
+ const bonusSize=level=>Math.min(7,4+Math.floor(level/BONUS_EVERY)); // 5×5 after L3, 6×6 after L6, 7×7 from L9 on
+@@ -765,7 +770,7 @@
+ function bonusEnd(cleared){
+   if(G.state==='bonusdone')return;
+   stopTimer();G.state='bonusdone';const left=Math.max(0,G.bonusMs-G.elapsed),n=G.cells.filter(c=>!c.alive).length;
+-  const cb=cleared?500:0,tl=cleared?Math.floor(left/100)*10:0,before=G.score;G.score+=cb+tl;G.runMs=(G.runMs||0)+Math.min(G.elapsed,G.bonusMs);const hi=bankScore();
++  const cb=cleared?500:0,tl=cleared?Math.floor(left/100)*10:0,before=G.score;G.score+=cb+tl;G.runMs=(G.runMs||0)+Math.min(G.elapsed,G.bonusMs);const hi=bankScore();showWorldRank();
+   setTally([['Blocks bashed',n*30],['Clear bonus',cb],['Time left bonus',tl]],before,G.score,hi,cleared?900:700);
+   const hist=store.get('cb_bonus',[]);hist.push({after:G.level,n,all:cleared,left:Math.round(left),d:Date.now()});if(!G.debug)store.set('cb_bonus',hist.slice(-50)); // kept for future rewards (not in debug runs)
+   if(cleared){Snd.win();FX.confetti();buzz(60);}else{Snd.timeup();buzz(120);$('grid').classList.add('dead');}
+@@ -914,11 +919,11 @@
+ let plusAcc=0,plusT=null;
+ function addScore(n){if(n<=0)return;G.score+=n;plusAcc+=n;const p=$('plusN');p.textContent='+'+plusAcc.toLocaleString('en-GB');restart(p,'show');
+   clearTimeout(plusT);plusT=setTimeout(()=>{plusAcc=0;},700);}
+-function bankScore(){   // one Top Scores entry per game, updated each time a level or bonus round ends
++function bankScore(levelMs){   // one Top Scores entry per game, updated each time a level or bonus round ends (levelMs: time of the level just cleared)
+   if(G.debug)return false;const all=store.get('cb_scores',[]),mine=all.find(x=>x.id===G.runId),others=all.filter(x=>x.id!==G.runId);
+   const best=others.length?Math.max(...others.map(x=>x.s)):0,was=mine?mine.s:0;
+   others.push({id:G.runId,s:G.score,lv:G.level,d:Date.now()});others.sort((a,b)=>b.s-a.s);store.set('cb_scores',others.slice(0,20));
+-  if(!G.cheated)Net.queue(G.runId,G.score,G.level,Math.round(G.runMs||0));   // world leaderboard (never debug games or games where the hidden extra was used)
++  if(!G.cheated)Net.queue(G.runId,G.score,G.level,Math.round(G.runMs||0),levelMs);   // world leaderboard (never debug games or games where the hidden extra was used)
+   return G.score>best&&was<=best;}
+ function countUp(el,a,b,ms){const t0=performance.now();(function f(t){const k=Math.min(1,Math.max(0,(t-t0)/ms));
+   el.textContent=Math.round(a+(b-a)*(1-Math.pow(1-k,3))).toLocaleString('en-GB');if(k<1)requestAnimationFrame(f);})(t0);}
+@@ -930,7 +935,7 @@
+   if(G.bonus){bonusEnd(true);return;}
+   stopTimer();G.state='win';stopWarn();const t=G.elapsed;Snd.win();FX.confetti();buzz(60);
+   const play=G.score-G.levelStartScore,tb=Math.max(0,Math.floor(90-t/1000))*10,lb=G.hearts*200,vb=G.level*250,before=G.score;
+-  G.score+=tb+lb+vb;G.runMs=(G.runMs||0)+t;const hi=bankScore();
++  G.score+=tb+lb+vb;G.runMs=(G.runMs||0)+t;const hi=bankScore(Math.round(t));showWorldRank();
+   setTally([['Level play',play],['Time bonus',tb],['Lives bonus',lb],['Level bonus',vb]],before,G.score,hi,900);
+   const recs=store.get('cb_records',[]);const prevBest=recs.length?recs[0].t:Infinity;
+   const rec={t:Math.round(t),lv:G.level,h:G.hearts,d:Date.now()};recs.push(rec);recs.sort((a,b)=>a.t-b.t);const rank=recs.indexOf(rec)+1;
+@@ -1007,17 +1012,22 @@
+     try{const r=await fetch(this.base+path,{method,headers:h,body:body?JSON.stringify(body):undefined,signal:ctl.signal,credentials:'omit',cache:'no-store'});
+       let d={};try{d=await r.json();}catch(e){}return {status:r.status,data:d};}
+     catch(e){return {status:0,data:{}};}finally{clearTimeout(to);}},
+-  queue(runId,score,level,playMs){if(!this.avail()||typeof runId!=='string')return;
+-    this.pending[runId]={score,level,playMs,t:Date.now()};
++  queue(runId,score,level,playMs,levelMs){if(!this.avail()||typeof runId!=='string')return;
++    const lv={...((this.pending[runId]||{}).lv||{})};if(levelMs>=3000)lv[level]=Math.min(levelMs,lv[level]||Infinity);   // level times travel with the game until sent
++    this.pending[runId]={score,level,playMs,lv,t:Date.now()};
+     const keep=Object.entries(this.pending).sort((a,b)=>b[1].t-a[1].t).slice(0,20);this.pending=Object.fromEntries(keep);
+     store.set('cb_pending',this.pending);this.flush();},
+-  async flush(){if(!this.player||this.flushing||!this.avail())return;this.flushing=true;
++  async flush(){if(!this.player||this.flushing||!this.avail())return;this.flushing=true;let failed=false;
+     try{for(const [id,p] of Object.entries(this.pending)){
+-      const r=await this.req('POST','/v1/score',{runId:id,score:p.score,level:p.level,playMs:p.playMs},true);
+-      if(r.status===0||r.status===429||r.status>=500)break;           // offline / busy: try again later
+-      if(r.status===401){this.forget();break;}
+-      delete this.pending[id];store.set('cb_pending',this.pending);}}   // sent (or permanently refused)
+-    finally{this.flushing=false;}},
++      const levelTimes=Object.entries(p.lv||{}).map(([l,ms])=>({level:+l,ms})).filter(t=>t.level<=p.level&&t.ms<=p.playMs);
++      const r=await this.req('POST','/v1/score',{runId:id,score:p.score,level:p.level,playMs:p.playMs,levelTimes},true);
++      if(r.status===0||r.status===429||r.status>=500){failed=true;break;}   // offline / busy: try again later
++      if(r.status===401){this.forget();failed=true;break;}
++      if(id===this.waitRank&&this.pending[id]===p){this.waitRank=null;rankLine(r.status===200?r.data.rank:{hidden:true});}   // refused score: just hide the line
++      if(this.pending[id]===p){delete this.pending[id];store.set('cb_pending',this.pending);}}}   // sent (or permanently refused) - unless it was updated meanwhile
++    finally{this.flushing=false;
++      if(!failed&&this.player&&Object.keys(this.pending).length)setTimeout(()=>this.flush(),0);   // something arrived while sending: send it too
++      else if(failed&&this.waitRank&&this.pending[this.waitRank])rankLine(null);}},
+   async join(name){const r=await this.req('POST','/v1/player',{name});
+     if(r.status===201){this.player={name:r.data.name,token:r.data.token};store.set('cb_player',this.player);this.flush();}return r;},
+   async rename(name){const r=await this.req('PUT','/v1/player',{name},true);
+@@ -1025,21 +1035,32 @@
+   async remove(){const r=await this.req('DELETE','/v1/player',null,true);
+     if(r.status===200||r.status===401){this.forget();this.pending={};store.set('cb_pending',{});}return r;},
+   forget(){this.player=null;store.set('cb_player',null);},
+-  board(period){return this.req('GET','/v1/leaderboard?period='+period,null,!!this.player);}
++  board(period,board){return this.req('GET','/v1/leaderboard?period='+period+'&board='+board,null,!!this.player);}
+ };
+ const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+-let worldPeriod='all',worldReq=0,nameFrom=null,delArmed=null;
++let worldPeriod='all',worldBoard='points',worldReq=0,nameFrom=null,delArmed=null;
++/* world rank line on the level-complete / bonus results screen: the player's best-ever rank */
++function showWorldRank(){const el=$('winWorld');
++  if(!Net.avail()||G.debug||G.cheated){el.innerHTML='';Net.waitRank=null;return;}
++  if(!Net.player){el.innerHTML='<button class="btn small green" id="winJoin">🌍 JOIN TO GET A WORLD RANK</button>';return;}
++  el.textContent='🌍 Checking your world rank…';Net.waitRank=G.runId;}
++function rankLine(rank){const el=$('winWorld');
++  if(!rank){el.textContent='🌍 Your world rank will update when you’re back online';return;}
++  if(rank.hidden||!rank.all){el.textContent='';return;}
++  el.innerHTML=`🌍 <b>#${+rank.all}</b> in the world${rank.week?` · <b>#${+rank.week}</b> this week`:''}`;}
+ async function renderWorld(){
+-  const list=$('recList');
+-  $('recHead').innerHTML=`<div class="seg wseg"><button data-p="all" class="${worldPeriod==='all'?'on':''}">ALL-TIME</button><button data-p="week" class="${worldPeriod==='week'?'on':''}">THIS WEEK</button></div>`;
++  const list=$('recList'),on=(v,c)=>v===c?' class="on"':'',pts=worldBoard==='points';
++  $('recHead').innerHTML=`<div class="wsegs"><div class="seg wseg"><button data-b="points"${on(worldBoard,'points')}>POINTS</button><button data-b="fastest"${on(worldBoard,'fastest')}>FASTEST LEVEL</button></div>`+
++    `<div class="seg wseg"><button data-p="all"${on(worldPeriod,'all')}>ALL-TIME</button><button data-p="week"${on(worldPeriod,'week')}>THIS WEEK</button></div></div>`;
+   if(!Net.avail()){list.innerHTML='<li class="empty">The world leaderboard works on<br><b>www.colourbasher.co.uk</b></li>';return;}
+   list.innerHTML='<li class="empty">Loading…</li>';
+-  const my=++worldReq;Net.flush();const r=await Net.board(worldPeriod);if(my!==worldReq||recMode!=='w'||screen!=='records')return;
++  const my=++worldReq;Net.flush();const r=await Net.board(worldPeriod,worldBoard);if(my!==worldReq||recMode!=='w'||screen!=='records')return;
+   if(r.status!==200){list.innerHTML='<li class="empty">Can’t reach the world leaderboard right now.<br>Check your connection and try again.</li>';return;}
+   const d=r.data,rows=d.top||[],wk=worldPeriod==='week'?' this week':'';
+-  let h=rows.length?rows.map(x=>`<li class="recrow r${x.rank}${x.me?' me':''}"><span class="rank">${x.rank}</span><span class="wn">${esc(x.name)}</span><span class="t">${(+x.score).toLocaleString('en-GB')}</span><span class="lv">L${+x.level}</span></li>`).join('')
+-    :`<li class="empty">No scores${wk} yet – be the first!</li>`;
+-  if(Net.player){const m=d.me;h+=`<li class="wme">${m&&m.rank?`You (${esc(Net.player.name)}): <b>#${m.rank}</b> · ${(+m.score).toLocaleString('en-GB')}`:`You (${esc(Net.player.name)}): no ranked game${wk} yet`}</li>`;}
++  const val=x=>pts?(+x.score).toLocaleString('en-GB'):fmt(+x.ms,2)+'s';
++  let h=rows.length?rows.map(x=>`<li class="recrow r${x.rank}${x.me?' me':''}"><span class="rank">${x.rank}</span><span class="wn">${esc(x.name)}</span><span class="t">${val(x)}</span><span class="lv">L${+x.level}</span></li>`).join('')
++    :`<li class="empty">No ${pts?'scores':'level times'}${wk} yet – be the first!</li>`;
++  if(Net.player){const m=d.me;h+=`<li class="wme">${m&&m.rank?`You (${esc(Net.player.name)}): <b>#${m.rank}</b> · ${val(m)}${pts?'':` (L${+m.level})`}`:`You (${esc(Net.player.name)}): no ranked ${pts?'game':'level'}${wk} yet`}</li>`;}
+   else h+='<li class="wme"><button class="btn small green" id="wJoin">JOIN THE WORLD LEADERBOARD</button></li>';
+   list.innerHTML=h;}
+ function renderNet(){const on=Net.avail();$('netBox').hidden=!on;if(!on)return;
+@@ -1047,9 +1068,10 @@
+   $('wDelRow').hidden=!Net.player;$('wDel').textContent='DELETE';clearTimeout(delArmed);delArmed=null;}
+ function openName(from){nameFrom=from;$('nameIn').value=Net.player?Net.player.name:'';$('nameMsg').textContent='';showOv('ovName');
+   setTimeout(()=>{try{$('nameIn').focus();}catch(e){}},60);}
+-function closeName(){const f=nameFrom;nameFrom=null;if(f==='settings'){renderNet();showOv('ovSettings');}else{showOv(null);if(screen==='records')renderRecords();}}
++function closeName(){const f=nameFrom;nameFrom=null;if(f==='settings'){renderNet();showOv('ovSettings');}else if(f==='win'){showOv('ovWin');if(Net.player&&Net.waitRank!==G.runId)showWorldRank();}else{showOv(null);if(screen==='records')renderRecords();}}
+ async function saveName(){const v=$('nameIn').value.trim();if(!v){$('nameMsg').textContent='Please enter a name.';return;}
+   $('nameSave').disabled=true;$('nameMsg').textContent='Saving…';
++  if(nameFrom==='win'&&!Net.player){Net.waitRank=G.runId;$('winWorld').textContent='🌍 Checking your world rank…';}   // joining from the results screen: show the rank as soon as this game is sent
+   const r=Net.player?await Net.rename(v):await Net.join(v);$('nameSave').disabled=false;
+   if(r.status===200||r.status===201){Snd.life();closeName();return;}
+   $('nameMsg').textContent=r.status===0?'Can’t reach the server – check your connection.':(r.data.message||'Something went wrong – try again.');}
+@@ -1086,9 +1108,10 @@
+ const ui=(id,fn)=>$(id).addEventListener('click',()=>{Snd.init();Snd.click();fn();});
+ ui('newBtn',newGame);ui('recBtn',()=>showScreen('records'));ui('recBack',()=>showScreen('title'));
+ /* world leaderboard wiring */
+-$('recPanel').addEventListener('click',e=>{const p=e.target.closest('.wseg button');if(p){Snd.init();Snd.click();worldPeriod=p.dataset.p;renderWorld();return;}
++$('recPanel').addEventListener('click',e=>{const p=e.target.closest('.wseg button');if(p){Snd.init();Snd.click();if(p.dataset.b)worldBoard=p.dataset.b;else worldPeriod=p.dataset.p;renderWorld();return;}
+   if(e.target.closest('#wJoin')){Snd.init();Snd.click();openName('records');}});
+ ui('nameSave',saveName);ui('nameCancel',closeName);
++$('winWorld').addEventListener('click',e=>{if(e.target.closest('#winJoin')){Snd.init();Snd.click();openName('win');}});
+ $('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveName();}});
+ ui('wNameBtn',()=>openName('settings'));
+ ui('wDel',async()=>{const b=$('wDel');

@@ -4,6 +4,15 @@ All notable changes to Colour Basher, newest first.
 Version numbers follow MAJOR.MINOR.PATCH: new features bump MINOR, fixes and tweaks bump PATCH.
 The technical detail behind each release is in `CODE-CHANGES.md`.
 
+## [2.2.0] – 2026-11-01 – BETA
+
+### Added
+- **🌍 Fastest Level board.** The World tab now has **POINTS** and **FASTEST LEVEL** boards, each with **ALL-TIME** and **THIS WEEK**. Fastest Level ranks each player's quickest time to clear any single level (bonus rounds don't count) and shows which level it was.
+- **World rank on the level-complete screen.** After each level and bonus round, a line shows your best-ever ranking, e.g. **"🌍 #12 in the world · #3 this week"**.
+  - If you haven't joined, it shows a small **🌍 JOIN TO GET A WORLD RANK** button instead. Join right there and your rank appears straight away.
+  - If you're offline, it says your rank will update when you're back online.
+  - Nothing is shown for debug games, or after a hidden extra has been used.
+
 ## [2.1.0] – 2026-11-01 – BETA
 
 ### Added
